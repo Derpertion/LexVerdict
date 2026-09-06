@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LexVerdict Case Access</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='login_style.css') }}">
+    <style>
+        .top-right-button {
+        position: fixed; 
+        top: 10px;
+        right: 20px; 
+        z-index: 1000; 
+    }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <form action="{{ url_for('auth.landing_page') }}" class="top-right-button">
+                <button type="submit" class="btn">Return to Landing Page</button>
+            </form>
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="DOJ Logo" style="height: 250px; width: 250px;">
+            <h1>Case Look-up</h1>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% set category, message = messages[-1] %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                {{ form.docket(placeholder="Docket Number", class="input-field") }}<br>
+
+                <div style="position: relative;">
+                    {{ form.pin(class="input-field", placeholder="PIN Code", id="pin") }}
+                    <img 
+                        src="{{ url_for('static', filename='close.png') }}"
+                        data-open="{{ url_for('static', filename='open.png') }}"
+                        data-close="{{ url_for('static', filename='close.png') }}"
+                        alt="Toggle PIN"
+                        id="togglePin"
+                        style="
+                            position: absolute;
+                            top: 50%;
+                            right: 10px;
+                            transform: translateY(-50%);
+                            width: 30px;
+                            height: 20px;
+                            cursor: pointer;
+                        ">
+                </div>
+
+                <button type="submit">Access</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const pinInput = document.getElementById('pin');
+        const toggleIcon = document.getElementById('togglePin');
+
+        toggleIcon.addEventListener('click', function () {
+            const isPassword = pinInput.type === 'password';
+            pinInput.type = isPassword ? 'text' : 'password';
+            toggleIcon.src = isPassword 
+                ? toggleIcon.dataset.open 
+                : toggleIcon.dataset.close;
+        });
+    });
+    </script>
+</body>
+</html>

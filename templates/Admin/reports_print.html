@@ -1,0 +1,239 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>LexVerdict — Case Report</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 0.5in;
+    }
+    body {
+      font-family: "Arial", sans-serif;
+      color: #111;
+      font-size: 12px;
+      line-height: 1.4;
+      margin: 0;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      border-bottom: 2px solid #2a1d76;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+    }
+    header img {
+      height: 50px;
+      margin-right: 10px;
+    }
+    header h1 {
+      color: #2a1d76;
+      font-size: 20px;
+      text-transform: uppercase;
+      margin: 0;
+    }
+    .meta {
+      font-size: 11px;
+      color: #555;
+      font-style: italic;
+      margin-bottom: 10px;
+    }
+    .section {
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      page-break-inside: auto !important;
+      orphans: 1;
+      widows: 1;
+    }
+    .section h2 {
+      color: #2a1d76;
+      font-size: 13px;
+      font-weight: bold;
+      margin: 0 0 6px 0;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 3px;
+      text-transform: uppercase;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 5px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 5px 6px;
+      text-align: left;
+    }
+    th {
+      background: #f5f6fa;
+      color: #2a1d76;
+      font-weight: bold;
+    }
+    tr:nth-child(even) td {
+      background: #fafafa;
+    }
+    .summary-grid div {
+      margin-bottom: 3px;
+    }
+    .bar {
+      height: 7px;
+      background: #2a1d76;
+      display: inline-block;
+      border-radius: 3px;
+      vertical-align: middle;
+    }
+    .small {
+      font-size: 10px;
+      color: #444;
+    }
+    .chart-block {
+      text-align: center;
+      margin-bottom: 12px;
+      page-break-inside: avoid;
+    }
+    .chart-block img {
+      display: block;
+      max-width: 100%;
+      margin: 6px auto;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    .chart-block h3 {
+      font-size: 12px;
+      color: #2a1d76;
+      margin: 4px 0 2px 0;
+      text-transform: uppercase;
+    }
+    footer {
+      margin-top: 10px;
+      font-size: 10px;
+      color: #555;
+      text-align: right;
+      border-top: 1px solid #ddd;
+      padding-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>LexVerdict — Case Report</h1>
+  </header>
+
+  <div class="meta">
+    Generated: {{ generated_text }}
+  </div>
+
+  <div class="section">
+    <h2>Summary</h2>
+    <div class="summary-grid">
+      <div><strong>Total Cases:</strong> {{ total_cases }}</div>
+      <div><strong>Cases Filed:</strong> {{ filed }}</div>
+      <div><strong>Cases Dismissed:</strong> {{ dismissed }}</div>
+      {% if show_crime_sections %}
+        <div><strong>Top Case Type:</strong> {{ most_common_crime or 'N/A' }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if show_crime_sections %}
+  <div class="section">
+    <h2>Crime Distribution</h2>
+    <table>
+      <thead><tr><th>Crime</th><th>Count</th><th>Share</th></tr></thead>
+      <tbody>
+        {% set total = total_cases or 1 %}
+        {% for r in bar_chart_data %}
+          <tr>
+            <td>{{ r.label }}</td>
+            <td>{{ r.count }}</td>
+            <td>
+              <span class="bar" style="width:{{ (r.count / total * 100)|round(1) }}%"></span>
+              <span class="small"> {{ (r.count / total * 100)|round(1) }}% ({{ r.count }})</span>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="3">No data</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="section">
+    <h2>Verdict Breakdown</h2>
+    <table>
+      <thead><tr><th>Verdict</th><th>Count</th><th>Percent</th></tr></thead>
+      <tbody>
+        {% for v in verdict_data %}
+          <tr><td>{{ v.label }}</td><td>{{ v.count }}</td><td>{{ v.percent }}%</td></tr>
+        {% else %}
+          <tr><td colspan="3">No data</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if not hide_sex %}
+  <div class="section">
+    <h2>Sex Breakdown</h2>
+    <table>
+      <thead><tr><th>Sex</th><th>Count</th><th>Percent</th></tr></thead>
+      <tbody>
+        {% for s in sex_data %}
+          <tr><td>{{ s.label }}</td><td>{{ s.count }}</td><td>{{ s.percent }}%</td></tr>
+        {% else %}
+          <tr><td colspan="3">No data</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {% if not hide_age %}
+  <div class="section">
+    <h2>Age Group Breakdown</h2>
+    <table>
+      <thead><tr><th>Age Group</th><th>Count</th><th>Percent</th></tr></thead>
+      <tbody>
+        {% for a in age_data %}
+          <tr><td>{{ a.label }}</td><td>{{ a.count }}</td><td>{{ a.percent }}%</td></tr>
+        {% else %}
+          <tr><td colspan="3">No data</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {% if not hide_station %}
+  <div class="section">
+    <h2>Top Police Stations</h2>
+    <table>
+      <thead><tr><th>Police Station</th><th>Count</th></tr></thead>
+      <tbody>
+        {% for s in station_data %}
+          <tr><td>{{ s.label }}</td><td>{{ s.count }}</td></tr>
+        {% else %}
+          <tr><td colspan="2">No data</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+{% if chart_images %}
+<div class="section">
+  <h2>Graphical Overview</h2>
+  {% set chart_names = ['Crime Distribution', 'Verdict Breakdown', 'Sex Breakdown', 'Age Group Breakdown', 'Top Police Stations'] %}
+  {% for img in chart_images %}
+    <div class="chart-block">
+      <h3>{{ chart_names[loop.index0] if loop.index0 < chart_names|length else 'Chart ' ~ loop.index }}</h3>
+      <img src="{{ img }}" alt="Chart {{ loop.index }}">
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+</body>
+</html>

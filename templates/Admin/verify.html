@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Verify Cases</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='lexverdict.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .case-table th:nth-child(9),
+        .case-table td:nth-child(9) { width: 180px; }
+        .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background: rgba(0,0,0,0.4); }
+        .modal-content { background: #fff; margin: 6% auto; padding: 1.25rem; border-radius: 6px; width: 90%; max-width: 720px; }
+        .close { float: right; font-size: 1.25rem; cursor: pointer; }
+        .denial-box { background: #fff1f1; border: 1px solid #f5c2c2; padding: .5rem; border-radius: 4px; margin-bottom: .75rem; }
+        .flash-toast { position: fixed; right: 1rem; top: 1rem; background: #323232; color: #fff; padding: .5rem 1rem; border-radius: 6px; z-index: 2000; }
+    </style>
+</head>
+<body>
+    <header class="nav-header">
+        <a href="{{ url_for('admin.dashboard') }}" class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="nav-logo">
+        </a>
+        <h1 class="nav-title">LexVerdict | Admin: {{ current_user.person.First_name }}</h1>
+        <nav class="nav-links">
+            <a href="{{ url_for('admin.subpoena_list') }}" class="{% if request.endpoint == 'admin.subpoena_list' %}active{% endif %}">List of Cases</a>
+            <a href="{{ url_for('admin.create_subpoena') }}" class="{% if request.endpoint == 'admin.create_subpoena' %}active{% endif %}">Add Cases</a>
+            <a href="{{ url_for('admin.verify_cases') }}" class="{% if request.endpoint == 'admin.verify_cases' %}active{% endif %}">Verify Cases</a>
+            <a href="{{ url_for('admin.reports') }}" class="{% if request.endpoint == 'admin.reports' %}active{% endif %}">Generate Report</a>
+        </nav>
+    </header>
+
+    <div class="content">
+        <h2 class="section-title">VERIFY CASES</h2>
+
+        <!-- SUBPOENAS -->
+        <section>
+            <h3>Subpoenas</h3>
+
+            <!-- Controls: sorting (left) and search (right) -->
+            <div class="subpoena-controls" style="display:flex; gap:1rem; align-items:center;">
+                <form method="get" id="subSortForm" style="display:flex; align-items:center; gap:1rem;">
+                    <label>Sort by:</label>
+                    <select name="sub_sort" class="sort-toggle" onchange="this.form.submit()">
+                        <option value="Docket_Number" {% if sub_current_sort == 'Docket_Number' %}selected{% endif %}>Docket No.</option>
+                        <option value="Crimes" {% if sub_current_sort == 'Crimes' %}selected{% endif %}>Case</option>
+                        <option value="Police_Station" {% if sub_current_sort == 'Police_Station' %}selected{% endif %}>Police Station</option>
+                        <option value="Prosecutor" {% if sub_current_sort == 'Prosecutor' %}selected{% endif %}>Prosecutor</option>
+                        <option value="Complainants" {% if sub_current_sort == 'Complainants' %}selected{% endif %}>Complainant</option>
+                        <option value="Respondents" {% if sub_current_sort == 'Respondents' %}selected{% endif %}>Respondent</option>
+                        <option value="Created_By" {% if sub_current_sort == 'Created_By' %}selected{% endif %}>Created By</option>
+                    </select>
+
+                    <select name="sub_order" class="sort-toggle" onchange="this.form.submit()">
+                        <option value="asc" {% if sub_current_order == 'asc' %}selected{% endif %}>Ascending</option>
+                        <option value="desc" {% if sub_current_order == 'desc' %}selected{% endif %}>Descending</option>
+                    </select>
+
+                    <input type="hidden" name="sub_search" value="{{ sub_current_search }}">
+                    <input type="hidden" name="sub_filter" value="{{ sub_current_filter }}">
+                    <input type="hidden" name="sub_page" value="{{ sub_page }}">
+
+                    <input type="hidden" name="res_page" value="{{ res_page }}">
+                    <input type="hidden" name="res_sort" value="{{ res_current_sort }}">
+                    <input type="hidden" name="res_order" value="{{ res_current_order }}">
+                    <input type="hidden" name="res_search" value="{{ res_current_search }}">
+                    <input type="hidden" name="res_filter" value="{{ res_current_filter }}">
+                </form>
+
+
+                <form method="get" id="subSearchForm" style="display:flex; align-items:center; gap:0.5rem; margin-left:auto;">
+                    <input type="text" name="sub_search" placeholder="Search" value="{{ sub_current_search or '' }}">
+
+                    <select name="sub_filter" class="sort-toggle">
+                        <option value="" {% if sub_current_filter == '' %}selected{% endif %}>All Fields</option>
+                        <option value="Docket_Number" {% if sub_current_filter == 'Docket_Number' %}selected{% endif %}>Docket No</option>
+                        <option value="Crimes" {% if sub_current_filter == 'Crimes' %}selected{% endif %}>Case</option>
+                        <option value="Complainants" {% if sub_current_filter == 'Complainants' %}selected{% endif %}>Complainant</option>
+                        <option value="Respondents" {% if sub_current_filter == 'Respondents' %}selected{% endif %}>Respondent</option>
+                        <option value="Police_Station" {% if sub_current_filter == 'Police_Station' %}selected{% endif %}>Police Station</option>
+                        <option value="Prosecutor" {% if sub_current_filter == 'Prosecutor' %}selected{% endif %}>Prosecutor</option>
+                        <option value="Created_By" {% if sub_current_filter == 'Created_By' %}selected{% endif %}>Created By</option>
+                    </select>
+
+                    <!-- Persist current sorting/pagination for subpoenas -->
+                    <input type="hidden" name="sub_sort" value="{{ sub_current_sort or 'Date_' }}">
+                    <input type="hidden" name="sub_order" value="{{ sub_current_order or 'desc' }}">
+                    <input type="hidden" name="sub_page" value="{{ sub_page }}">
+
+                    <!-- Persist resolution table state -->
+                    <input type="hidden" name="res_page" value="{{ res_page }}">
+                    <input type="hidden" name="res_sort" value="{{ res_current_sort }}">
+                    <input type="hidden" name="res_order" value="{{ res_current_order }}">
+                    <input type="hidden" name="res_search" value="{{ res_current_search }}">
+                    <input type="hidden" name="res_filter" value="{{ res_current_filter }}">
+
+                    <button type="submit" class="btn" style="background-color: #2a1d76; color: white; padding: 5px 15px; border-radius: 20px;">
+                        Search
+                    </button>
+                </form>
+            </div>
+
+            <table class="case-table" style="width:100%; margin-top:0.75rem;">
+                <thead>
+                    <tr>
+                        <th>Docket No.</th>
+                        <th>Case</th>
+                        <th>Complainant</th>
+                        <th>Respondent</th>
+                        <th>Police Station</th>
+                        <th>Date</th>
+                        <th>Prosecutor</th>
+                        <th>Created By</th>
+                        <th>Command</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in subpoenas %}
+                    <tr id="row-{{ s.Docket_Number }}" {% if s.Status == "Denied" %}style="background-color: #ffe5e5;"{% endif %}>
+                        <td>{{ s.Docket_Number }}</td>
+                        <td>{{ s.Crimes }}</td>
+                        <td>{{ s.Complainants }}</td>
+                        <td>{{ s.Respondents }}</td>
+                        <td>{{ s.Police_Station }}</td>
+                        <td>{{ s.Date_ }}</td>
+                        <td>{{ s.Prosecutor }}</td>
+                        <td>{{ s.Created_By }}</td>
+                        <td>
+                            {% if s.Status == 'Denied' %}
+                                <span style="color:red; font-weight: bold;">Declined</span> |
+                                <a href="{{ url_for('admin.edit_subpoena', docket_number=s.Docket_Number) }}" class="edit-btn">Revise</a>
+                            {% else %}
+                                <a href="{{ url_for('admin.view_subpoena', docket_number=s.Docket_Number) }}">View</a> |
+                                <a href="#" class="approve-btn" data-docket="{{ s.Docket_Number }}" onclick="confirmApprove('{{ s.Docket_Number }}')">Approve</a> /
+                                <a href="#" onclick="openDenyModal('{{ s.Docket_Number }}')">Decline</a> |
+                                <a href="{{ url_for('admin.edit_subpoena', docket_number=s.Docket_Number) }}" class="edit-btn">Revise</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="pagination" style="margin-top: 1rem; display:flex; gap:0.5rem; align-items:center;">
+                <button {% if sub_page <= 1 %}disabled{% endif %}
+                    onclick="location.href='?sub_page={{ sub_page - 1 }}&sub_sort={{ sub_current_sort }}&sub_order={{ sub_current_order }}&sub_search={{ sub_current_search or '' }}&sub_filter={{ sub_current_filter or '' }}&res_page={{ res_page }}&res_sort={{ res_current_sort }}&res_order={{ res_current_order }}&res_search={{ res_current_search or '' }}&res_filter={{ res_current_filter or '' }}'">
+                    Back
+                </button>
+
+                <span>Page {{ sub_page }} of {{ sub_total_pages }}</span>
+
+                <button {% if sub_page == sub_total_pages %}disabled{% endif %}
+                    onclick="location.href='?sub_page={{ sub_page + 1 }}&sub_sort={{ sub_current_sort }}&sub_order={{ sub_current_order }}&sub_search={{ sub_current_search or '' }}&sub_filter={{ sub_current_filter or '' }}&res_page={{ res_page }}&res_sort={{ res_current_sort }}&res_order={{ res_current_order }}&res_search={{ res_current_search or '' }}&res_filter={{ res_current_filter or '' }}'">
+                    Next
+                </button>
+            </div>
+        </section>
+
+        <br>
+
+        <!-- RESOLUTIONS -->
+        <section>
+            <h3>Resolution</h3>
+
+            <div class="subpoena-controls" style="display:flex; gap:1rem; align-items:center;">
+                <form method="get" id="resSortForm" style="display:flex; align-items:center; gap:1rem;">
+                    <label>Sort by:</label>
+                    <select name="res_sort" class="sort-toggle" onchange="this.form.submit()">
+                        <option value="Docket_Number" {% if res_current_sort == 'Docket_Number' %}selected{% endif %}>Docket No.</option>
+                        <option value="Crimes" {% if res_current_sort == 'Crimes' %}selected{% endif %}>Case</option>
+                        <option value="Prosecutor" {% if res_current_sort == 'Prosecutor' %}selected{% endif %}>Prosecutor</option>
+                        <option value="Complainants" {% if res_current_sort == 'Complainants' %}selected{% endif %}>Complainant</option>
+                        <option value="Respondents" {% if res_current_sort == 'Respondents' %}selected{% endif %}>Respondent</option>
+                        <option value="Verdict" {% if res_current_sort == 'Verdict' %}selected{% endif %}>Verdict</option>
+                        <option value="Court" {% if res_current_sort == 'Court' %}selected{% endif %}>Court</option>
+                        <option value="Created_By" {% if res_current_sort == 'Created_By' %}selected{% endif %}>Created By</option>
+                    </select>
+
+                    <select name="res_order" class="sort-toggle" onchange="this.form.submit()">
+                        <option value="asc" {% if res_current_order == 'asc' %}selected{% endif %}>Ascending</option>
+                        <option value="desc" {% if res_current_order == 'desc' %}selected{% endif %}>Descending</option>
+                    </select>
+
+                    <!-- Persist subpoena state -->
+                    <input type="hidden" name="sub_page" value="{{ sub_page }}">
+                    <input type="hidden" name="sub_sort" value="{{ sub_current_sort }}">
+                    <input type="hidden" name="sub_order" value="{{ sub_current_order }}">
+                    <input type="hidden" name="sub_search" value="{{ sub_current_search }}">
+                    <input type="hidden" name="sub_filter" value="{{ sub_current_filter }}">
+                </form>
+
+                <form method="get" id="resSearchForm" style="display:flex; align-items:center; gap:0.5rem; margin-left:auto;">
+                    <input type="text" name="res_search" placeholder="Search" value="{{ res_current_search or '' }}">
+
+                    <select name="res_filter" class="sort-toggle">
+                        <option value="" {% if res_current_filter == '' %}selected{% endif %}>All Fields</option>
+                        <option value="Docket_Number" {% if res_current_filter == 'Docket_Number' %}selected{% endif %}>Docket No</option>
+                        <option value="Crimes" {% if res_current_filter == 'Crimes' %}selected{% endif %}>Case</option>
+                        <option value="Complainants" {% if res_current_filter == 'Complainants' %}selected{% endif %}>Complainant</option>
+                        <option value="Respondents" {% if res_current_filter == 'Respondents' %}selected{% endif %}>Respondent</option>
+                        <option value="Prosecutor" {% if res_current_filter == 'Prosecutor' %}selected{% endif %}>Prosecutor</option>
+                        <option value="Verdict" {% if res_current_filter == 'Verdict' %}selected{% endif %}>Verdict</option>
+                        <option value="Court" {% if res_current_filter == 'Court' %}selected{% endif %}>Court</option>
+                        <option value="Created_By" {% if res_current_filter == 'Created_By' %}selected{% endif %}>Created By</option>
+                    </select>
+
+                    <!-- Persist resolution sorting/pagination -->
+                    <input type="hidden" name="res_sort" value="{{ res_current_sort or 'Verdict_Date' }}">
+                    <input type="hidden" name="res_order" value="{{ res_current_order or 'desc' }}">
+                    <input type="hidden" name="res_page" value="{{ res_page }}">
+
+                    <!-- Persist subpoena table state -->
+                    <input type="hidden" name="sub_page" value="{{ sub_page }}">
+                    <input type="hidden" name="sub_sort" value="{{ sub_current_sort }}">
+                    <input type="hidden" name="sub_order" value="{{ sub_current_order }}">
+                    <input type="hidden" name="sub_search" value="{{ sub_current_search }}">
+                    <input type="hidden" name="sub_filter" value="{{ sub_current_filter }}">
+
+                    <button type="submit" class="btn" style="background-color: #2a1d76; color: white; padding: 5px 15px; border-radius: 20px;">
+                        Search
+                    </button>
+                </form>
+            </div>
+
+            <table class="case-table" style="width:100%; margin-top:0.75rem;">
+                <thead>
+                    <tr>
+                        <th>Docket No.</th>
+                        <th>Case</th>
+                        <th>Complainant</th>
+                        <th>Respondent</th>
+                        <th>Prosecutor</th>
+                        <th>Verdict</th>
+                        <th>Court</th>
+                        <th>Created By</th>
+                        <th>Command</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in resolutions %}
+                    <tr id="row-{{ r.Docket_Number }}" {% if r.Status == "Denied" %}style="background-color: #ffe5e5;"{% endif %}>
+                        <td>{{ r.Docket_Number }}</td>
+                        <td>{{ r.Crimes or r.Crime }}</td>
+                        <td>{{ r.Complainants }}</td>
+                        <td>{{ r.Respondents }}</td>
+                        <td>{{ r.Prosecutor }}</td>
+                        <td>{{ r.Verdict }}</td>
+                        <td>{{ r.Court }}</td>
+                        <td>{{ r.Created_By }}</td>
+                        <td>
+                            {% if r.Status == 'Approved' %}
+                                {% if r.Verdict == 'For Filing' %}{{ r.Court }}{% endif %} <br>
+                                <small>{{ r.Verdict_Date.strftime('%Y-%m-%d') if r.Verdict_Date else '' }}</small>
+                            {% elif r.Status == 'Denied' %}
+                                <span style="color:red; font-weight: bold;">Declined</span> |
+                                <a href="#" class="edit-resolution-btn"
+                                   data-docket="{{ r.Docket_Number }}"
+                                   data-verdict="{{ r.Verdict }}"
+                                   data-court="{{ r.Court or '' }}"
+                                   data-date="{{ r.Verdict_Date.strftime('%Y-%m-%d') if r.Verdict_Date else '' }}"
+                                   data-comment="{{ r.Denial_Comment | e if r.Status == 'Denied' else '' }}">
+                                   Revise
+                                </a>
+                            {% else %}
+                                <a href="#" onclick="confirmApproveResolution('{{ r.Docket_Number }}')">Approve</a> /
+                                <a href="#" onclick="openDenyResolutionModal('{{ r.Docket_Number }}')">Decline</a> |
+                                <a href="#" class="edit-resolution-btn"
+                                   data-docket="{{ r.Docket_Number }}"
+                                   data-verdict="{{ r.Verdict }}"
+                                   data-court="{{ r.Court or '' }}"
+                                   data-date="{{ r.Verdict_Date.strftime('%Y-%m-%d') if r.Verdict_Date else '' }}"
+                                   data-comment="{{ r.Denial_Comment | e if r.Status == 'Denied' else '' }}">
+                                   Revise
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="pagination" style="margin-top: 1rem; display:flex; gap:0.5rem; align-items:center;">
+                <button {% if res_page <= 1 %}disabled{% endif %}
+                    onclick="location.href='?res_page={{ res_page - 1 }}&res_sort={{ res_current_sort }}&res_order={{ res_current_order }}&res_search={{ res_current_search or '' }}&res_filter={{ res_current_filter or '' }}&sub_page={{ sub_page }}&sub_sort={{ sub_current_sort }}&sub_order={{ sub_current_order }}&sub_search={{ sub_current_search or '' }}&sub_filter={{ sub_current_filter or '' }}'">
+                    Back
+                </button>
+
+                <span>Page {{ res_page }} of {{ res_total_pages }}</span>
+
+                <button {% if res_page == res_total_pages %}disabled{% endif %}
+                    onclick="location.href='?res_page={{ res_page + 1 }}&res_sort={{ res_current_sort }}&res_order={{ res_current_order }}&res_search={{ res_current_search or '' }}&res_filter={{ res_current_filter or '' }}&sub_page={{ sub_page }}&sub_sort={{ sub_current_sort }}&sub_order={{ sub_current_order }}&sub_search={{ sub_current_search or '' }}&sub_filter={{ sub_current_filter or '' }}'">
+                    Next
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <!-- Deny Subpoena Modal -->
+    <div id="denyModal" class="modal" aria-hidden="true">
+        <div class="modal-content">
+            <span class="close" onclick="closeDenyModal()">&times;</span>
+            <h3>Deny Subpoena</h3>
+            <form method="POST" id="denyForm" action="">
+                <input type="hidden" name="action" value="deny">
+                <input type="hidden" name="docket_number" id="modalDocketNumber">
+                <label for="comment">Reason for Declinement:</label>
+                <textarea name="comment" required style="width:96.5%; min-height:90px;"></textarea>
+                <div style="margin-top:0.75rem; display:flex; gap:.5rem; justify-content:flex-end;">
+                    <button type="button" class="btn" onclick="closeDenyModal()">Cancel</button>
+                    <button type="submit" class="btn create-btn">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Deny Resolution Modal -->
+    <div id="denyResolutionModal" class="modal" aria-hidden="true">
+        <div class="modal-content">
+            <span class="close" onclick="closeDenyResolutionModal()">&times;</span>
+            <h3>Deny Resolution</h3>
+            <form method="POST" id="denyResolutionForm" action="">
+                <input type="hidden" name="action" value="deny">
+                <input type="hidden" name="docket_number" id="resolutionModalDocketNumber">
+                <label for="comment">Reason for Declinement:</label>
+                <textarea name="comment" required style="width:96.5%; min-height:90px;"></textarea>
+                <div style="margin-top:0.75rem; display:flex; gap:.5rem; justify-content:flex-end;">
+                    <button type="button" class="btn" onclick="closeDenyResolutionModal()">Cancel</button>
+                    <button type="submit" class="btn create-btn">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit/Update Resolution Modal -->
+    <div id="resolutionModal" class="modal" aria-hidden="true">
+        <div class="modal-content">
+            <span class="close" onclick="closeResolutionModal()">&times;</span>
+            <h2 id="modalTitle">Edit Resolution</h2>
+
+            <div class="denial-box" id="denialBox" style="display: none;">
+                <h3 style="color: red; margin:0 0 .5rem 0;">Returned for Revision</h3>
+                <p><strong>Comment:</strong> <span id="denialComment"></span></p>
+            </div>
+
+            <form method="POST" action="{{ url_for('admin.edit_resolution') }}" id="resolutionEditForm">
+                {{ resolution_form.hidden_tag() }}
+                {{ resolution_form.docket_number }}
+
+                <label for="verdict">Verdict</label>
+                {{ resolution_form.verdict(class_="form-control", id="verdict", onchange="toggleCourtField()") }}
+
+                <div class="court-group" style="margin-top:.5rem;">
+                    <label for="court">Court</label>
+                    <input list="courts" name="court" id="court" class="form-control" placeholder="Type or select court" style="width: 100%;">
+                <datalist id="courts">
+                    <option value="MTC Aliaga">
+                    <option value="MTC Bongabon">
+                    <option value="MTC Carranglan">
+                    <option value="MTC Cuyapo">
+                    <option value="MTC General Tinio">
+                    <option value="MTC Guimba">
+                    <option value="MTC Jaen">
+                    <option value="MTC Lupao">
+                    <option value="MTC Nampicuan">
+                    <option value="MTC Pantabangan">
+                    <option value="MTC Peñaranda">
+                    <option value="MTC Rizal">
+                    <option value="MTC San Antonio">
+                    <option value="MTC San Leonardo">
+                    <option value="MTC Santa Rosa">
+                    <option value="MTC Santo Domingo">
+                    <option value="MTC Talavera">
+                    <option value="MTC Talugtug">
+                    <option value="MTC Zaragoza">
+                    <option value="MCTC Quezon-Licab">
+                    <option value="MCTC Cabiao-San Isidro">
+                    <option value="MCTC Gen. Natividad-Llanera">
+                    <option value="MCTC Laur-Gabaldo">
+                    <option value="RTC Palayan">
+                    <option value="RTC Cabanatuan">
+                    <option value="RTC San Jose">
+                    <option value="RTC Gapan">
+                    <option value="RTC Guimba">
+                    <option value="RTC Sto. Domingo">
+                </datalist>
+                </div>
+
+                <div style="margin-top:0.75rem; display:flex; gap:.5rem; justify-content:flex-end;">
+                    <button type="button" class="btn" onclick="closeResolutionModal()">Cancel</button>
+                    <button type="submit" class="submit-btn">Update Resolution</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Global toast -->
+    <div id="globalToast" style="display:none; position:fixed; right:1rem; bottom:1rem; padding:.6rem 1rem; border-radius:6px; color:#fff; z-index:3000;"></div>
+
+    <!-- Flask flash (keep last message visible) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages[-1:] %}
+                <div class="flash-toast">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+</body>
+
+<script>
+/* ---------- Utility functions ---------- */
+function showToast(message, isError = false) {
+    const toast = document.getElementById('globalToast');
+    toast.innerText = message;
+    toast.style.backgroundColor = isError ? '#e74c3c' : '#27ae60';
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3500);
+}
+
+/* ---------- Approve helpers ---------- */
+function confirmApprove(docket) {
+    if (!confirm("Are you sure you want to approve this subpoena?")) return;
+    const url = "{{ url_for('admin.verify_subpoena', docket_number='DOCKET_PLACEHOLDER', action='approve') }}".replace('DOCKET_PLACEHOLDER', docket);
+    window.location.href = url;
+}
+
+function confirmApproveResolution(docket) {
+    if (!confirm("Are you sure you want to approve this resolution?")) return;
+    const url = `/admin/verify/resolution/${docket}/approve`;
+    window.location.href = url;
+}
+
+/* ---------- Deny subpoena ---------- */
+function openDenyModal(docketNumber) {
+    const modal = document.getElementById('denyModal');
+    const input = document.getElementById('modalDocketNumber');
+    if (!modal || !input) { showToast('Modal not available', true); return; }
+    input.value = docketNumber;
+    const form = document.getElementById('denyForm');
+    form.action = `/admin/verify/subpoena/${docketNumber}/deny`;
+    modal.style.display = 'block';
+}
+
+function closeDenyModal() {
+    const modal = document.getElementById('denyModal');
+    if (modal) modal.style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const denyForm = document.getElementById('denyForm');
+    if (denyForm) {
+        denyForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const docketNumber = formData.get('docket_number');
+            const url = `/admin/verify/subpoena/${docketNumber}/deny`;
+
+            fetch(url, { method: 'POST', body: formData })
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to submit');
+                    return response.text();
+                })
+                .then(() => { window.location.reload(); })
+                .catch(() => showToast('Something went wrong while denying subpoena.', true));
+        });
+    }
+
+    /* Deny resolution */
+    const denyResolutionForm = document.getElementById('denyResolutionForm');
+    if (denyResolutionForm) {
+        denyResolutionForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const docketNumber = formData.get('docket_number');
+            const url = `/admin/verify/resolution/${docketNumber}/deny`;
+
+            fetch(url, { method: 'POST', body: formData })
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to submit');
+                    return response.text();
+                })
+                .then(() => { window.location.reload(); })
+                .catch(() => showToast('Something went wrong while denying resolution.', true));
+        });
+    }
+
+    /* Close deny resolution modal */
+    window.openDenyResolutionModal = function (docketNumber) {
+        const modal = document.getElementById('denyResolutionModal');
+        const input = document.getElementById('resolutionModalDocketNumber');
+        if (!modal || !input) { showToast('Modal not available', true); return; }
+        input.value = docketNumber;
+        const form = document.getElementById('denyResolutionForm');
+        form.action = `/admin/verify/resolution/${docketNumber}/deny`;
+        modal.style.display = 'block';
+    };
+
+    window.closeDenyResolutionModal = function () {
+        const modal = document.getElementById('denyResolutionModal');
+        if (modal) modal.style.display = 'none';
+    };
+
+    /* Resolution edit modal */
+    const resolutionModal = document.getElementById('resolutionModal');
+    if (resolutionModal) {
+        const verdictSelect = resolutionModal.querySelector('select[name="verdict"]');
+        const courtGroup = resolutionModal.querySelector('.court-group');
+        const courtInput = resolutionModal.querySelector('input[name="court"]');
+        const denialCommentEl = document.getElementById('denialComment');
+        const denialBox = document.getElementById('denialBox');
+
+        function toggleCourtField() {
+            if (!verdictSelect || !courtGroup) return;
+            if (verdictSelect.value === 'For Filing') {
+                courtGroup.style.display = 'block';
+            } else {
+                courtGroup.style.display = 'none';
+                if (courtInput) courtInput.value = '';
+            }
+        }
+
+        window.openResolutionModal = function (docketNumber, verdict, court, comment) {
+            if (!resolutionModal) return showToast('Modal not available', true);
+            resolutionModal.style.display = 'block';
+            const docketInput = resolutionModal.querySelector('input[name="docket_number"]');
+            if (docketInput) docketInput.value = docketNumber;
+            if (verdictSelect) verdictSelect.value = verdict || '';
+            if (courtInput) courtInput.value = court || '';
+            if (denialCommentEl) denialCommentEl.textContent = comment || '';
+            if (comment && denialBox) denialBox.style.display = 'block';
+            else if (denialBox) denialBox.style.display = 'none';
+            toggleCourtField();
+        };
+
+        window.closeResolutionModal = function () {
+            if (resolutionModal) resolutionModal.style.display = 'none';
+        };
+
+        if (verdictSelect) verdictSelect.addEventListener('change', toggleCourtField);
+
+        document.querySelectorAll('.edit-resolution-btn').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                const docket = this.dataset.docket;
+                const verdict = this.dataset.verdict;
+                const court = this.dataset.court;
+                const comment = this.dataset.comment;
+                window.openResolutionModal(docket, verdict, court, comment);
+            });
+        });
+    }
+
+    /* Global close when clicking outside modal content */
+    window.addEventListener('click', function (evt) {
+        const deny = document.getElementById('denyModal');
+        const denyRes = document.getElementById('denyResolutionModal');
+        const resModal = document.getElementById('resolutionModal');
+
+        function maybeClose(modal) {
+            if (!modal) return;
+            if (evt.target === modal) modal.style.display = 'none';
+        }
+        maybeClose(deny); maybeClose(denyRes); maybeClose(resModal);
+    });
+
+}); /* DOMContentLoaded */
+</script>
+</html>

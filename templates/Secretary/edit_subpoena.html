@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Case</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='lexverdict.css') }}">
+    <script src="{{ url_for('static', filename='form_dynamic.js') }}"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<header class="nav-header">
+    <a href="{{ url_for('secretary.dashboard') }}" class="{% if request.endpoint == 'secertary.dashboard' %}active{% endif %}"><img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="nav-logo"></a>
+    <h1 class="nav-title">LexVerdict | Secretary: {{ current_user.person.First_name }}</h1>
+    <nav class="nav-links">
+        <a href="{{ url_for('secretary.subpoena_list') }}" class="{% if request.endpoint == 'secretary.subpoena_list' %}active{% endif %}">List of Cases</a>
+        <a href="{{ url_for('secretary.create_subpoena') }}" class="{% if request.endpoint == 'secretary.create_subpoena' %}active{% endif %}">Add Cases</a>
+        <a href="{{ url_for('secretary.verify_cases') }}" class="{% if request.endpoint == 'secretary.verify_cases' %}active{% endif %}">Verifying Cases</a>
+    </nav>
+</header>
+
+<div class="content">
+    {% for field in form.errors %}
+        <div class="error">{{ field }}: {{ form.errors[field][0] }}</div>
+    {% endfor %}
+
+    <form method="POST" action="{{ url_for('secretary.edit_subpoena', docket_number=form.docket_number.data) }}">
+        {{ form.hidden_tag() }}
+
+        <div class="section-header">
+            <h2 class="section-title">REVISE CASE</h2>
+            <button type="submit" class="btn create-btn">Update Subpoena</button>
+        </div>
+
+        {% if denial_comment %}
+            <div class="denial-box">
+                <h3 style="color: red;">Returned for Revision</h3>
+                <p><strong>Comment:</strong> {{ denial_comment }}</p>
+            </div>
+        {% endif %}
+
+        <div class="form-grid">
+            <div class="form-column">
+                <div class="form-section">
+                    <label>Docket Number:</label>
+                    {{ form.docket_number(class="input-field", readonly=True) }}
+                    <label>Crimes:</label>
+                    <select id="offenses" name="crimes" multiple="multiple" style="width:100%;">
+                        {% for id, name in form.crimes.choices %}
+                            <option value="{{ id }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label>Date:</label>
+                    {{ form.date(class="input-field", type="date") }}
+                    <label>1st Hearing Date & Time:</label>
+                    {{ form.hearing_date_1(class="input-field", type="datetime-local") }}
+                    <label>2nd Hearing Date & Time:</label>
+                    {{ form.hearing_date_2(class="input-field", type="datetime-local") }}                
+                    <label>Police Station:</label>
+                    {{ form.police_station(class="input-field", placeholder="Police Station") }}
+                    <label>Prosecutor:</label>
+                    <select class="input-field" name="prosecutor_id">
+                        {% for value, label in form.prosecutor_id.choices %}
+                            <option value="{{ value }}" {% if form.prosecutor_id.data == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Complainants -->
+            <div>
+                <h3 style="color: #2a1d76;">Complainant(s)</h3>
+                <div id="complainant-container">
+                    {% for c_form in form.complainants %}
+                    {{ c_form.person_id }}
+                    {{ c_form.address_id }}
+                    <div class="person-box">
+                        {{ c_form.first_name(class="input-field2", placeholder="First Name") }}
+                        {{ c_form.last_name(class="input-field2", placeholder="Last Name") }}
+                        {{ c_form.middle_name(class="input-field2", placeholder="Middle Name") }}
+                        {{ c_form.suffix(style="width: 100%;", class="input-field2") }}
+                        {{ c_form.birth_date(class="input-field2", type="date") }}
+                        {{ c_form.sex(class="input-field2", style="width: 100%; ") }}
+                        {{ c_form.street(class="input-field2", placeholder="Street") }}
+                        {{ c_form.barangay(class="input-field2", placeholder="Barangay") }}
+                        {{ c_form.municipality(class="input-field2", placeholder="Municipality") }}
+                        {{ c_form.province(class="input-field2", placeholder="Province") }}
+                        {{ c_form.region(class="input-field2", placeholder="Region") }}
+                        <button type="button" class="remove-btn" onclick="removePerson(this)">Remove</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="button" class="add-btn" onclick="addPerson('complainant')">Add Complainant</button>
+            </div>
+
+            <!-- Respondents -->
+            <div>
+                <h3 style="color: #2a1d76;">Respondent(s)</h3>
+                <div id="respondent-container">
+                    {% for r_form in form.respondents %}
+                    {{ r_form.person_id }}
+                    {{ r_form.address_id }}     
+                    <div class="person-box">
+                        {{ r_form.first_name(class="input-field2", placeholder="First Name") }}
+                        {{ r_form.last_name(class="input-field2", placeholder="Last Name") }}
+                        {{ r_form.middle_name(class="input-field2", placeholder="Middle Name") }}
+                        {{ r_form.suffix(style="width: 100%;", class="input-field2") }}
+                        {{ r_form.birth_date(class="input-field2", type="date") }}
+                        {{ r_form.sex(class="input-field2", style="width: 100%; ") }}
+                        {{ r_form.street(class="input-field2", placeholder="Street") }}
+                        {{ r_form.barangay(class="input-field2", placeholder="Barangay") }}
+                        {{ r_form.municipality(class="input-field2", placeholder="Municipality") }}
+                        {{ r_form.province(class="input-field2", placeholder="Province") }}
+                        {{ r_form.region(class="input-field2", placeholder="Region") }}
+                        <button type="button" class="remove-btn" onclick="removePerson(this)">Remove</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="button" class="add-btn" onclick="addPerson('respondent')">Add Respondent</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages[-1:] %}
+                <div class="flash-toast">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+</body>
+</html>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+document.querySelector('form').addEventListener('submit', function (e) {
+    function cleanAndReindex(containerId, type) {
+        const container = document.getElementById(containerId);
+        const boxes = Array.from(container.querySelectorAll('.person-box'));
+
+        let newIndex = 0;
+
+        boxes.forEach((box, i) => {
+            const inputs = box.querySelectorAll('input, select');
+            const isEmpty = Array.from(inputs).every(input => !input.value.trim());
+
+            if (isEmpty) {
+                box.remove();
+            } else {
+                inputs.forEach(input => {
+                    const name = input.getAttribute('name');
+                    if (name) {
+                        const newName = name.replace(new RegExp(`${type}s-\\d+-`), `${type}s-${newIndex}-`);
+                        input.setAttribute('name', newName);
+                    }
+                });
+                newIndex++;
+            }
+        });
+    }
+
+    cleanAndReindex('complainant-container', 'complainant');
+    cleanAndReindex('respondent-container', 'respondent');
+});
+
+$(document).ready(function() {
+    var $crimes = $('#offenses');
+
+    $crimes.select2({
+        placeholder: "Search and add crimes",
+        ajax: {
+            url: '/search_offense',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) { return { q: params.term }; },
+            processResults: function (data) { return { results: data }; },
+            cache: true
+        },
+        tags: false,
+        multiple: true,
+        width: 'resolve'
+    });
+
+    // Preselect existing offenses
+    var preselected = [];
+    {% if form.crimes.data %}
+        {% for crime_id in form.crimes.data %}
+            preselected.push({{ crime_id }});
+        {% endfor %}
+    {% endif %}
+
+    if(preselected.length > 0){
+        $crimes.val(preselected).trigger('change');
+    }
+});
+</script>

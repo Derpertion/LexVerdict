@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create User</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='lexverdict.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<header class="nav-header">
+    <a href="{{ url_for('admin.dashboard') }}" class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="nav-logo">
+    </a>
+    <h1 class="nav-title">LexVerdict | Admin: {{ current_user.person.First_name }}</h1>
+    <nav class="nav-links">
+        <a href="{{ url_for('admin.manage_users') }}" class="{% if request.endpoint == 'admin.manage_users' %}active{% endif %}">List of Users</a>
+        <a href="{{ url_for('admin.archived_users') }}" class="{% if request.endpoint == 'admin.archived_users' %}active{% endif %}">Archived Users</a>
+        <a href="{{ url_for('admin.create_user') }}" class="{% if request.endpoint == 'admin.create_user' %}active{% endif %}">Add User</a>
+        <a href="{{ url_for('admin.user_logs') }}" class="{% if request.endpoint == 'admin.user_logs' %}active{% endif %}">User Logs</a>
+    </nav>
+</header>
+
+<div class="content">
+    {% for field in form.errors %}
+        <div class="error">{{ field }}: {{ form.errors[field][0] }}</div>
+    {% endfor %}
+
+    <form method="POST" action="{{ url_for('admin.create_user') }}">
+        {{ form.hidden_tag() }}
+
+        <div class="section-header">
+            <h2 class="section-title">{{ 'EDIT USER' if request.endpoint == 'admin.edit_user' else 'CREATE USER' }}</h2>
+            <button type="submit" class="btn create-btn">
+                {{ 'Update User' if request.endpoint == 'admin.edit_user' else 'Create User' }}
+            </button>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-column">
+                <h3 style="color: #2a1d76;">Personal Information</h3>
+                {{ form.first_name(class="input-field2", placeholder="First Name") }}
+                {{ form.last_name(class="input-field2", placeholder="Last Name") }}
+                {{ form.middle_name(class="input-field2", placeholder="Middle Name") }}
+                {{ form.suffix(style="width: 95%;", class="input-field2") }}
+                {{ form.birth_date(class="input-field2", type="date") }}
+                {{ form.sex(class="input-field2", style="width: 95%; ") }}
+            </div>
+
+            <div class="form-column">
+                <h3 style="color: #2a1d76;">Address</h3>
+                {{ form.street(class="input-field2", placeholder="Street") }}
+                {{ form.barangay(class="input-field2", placeholder="Barangay") }}
+                {{ form.municipality(class="input-field2", placeholder="Municipality") }}
+                {{ form.province(class="input-field2", placeholder="Province") }}
+                {{ form.region(class="input-field2", placeholder="Region") }}
+            </div>
+
+            <div class="form-column">
+                <h3 style="color: #2a1d76;">Account Credentials</h3>
+                {{ form.role(class="input-field2", style="width: 95%; ") }}
+                {{ form.username(class="input-field2", placeholder="Username") }}
+                <div style="position: relative;">
+                    {{ form.password(class="input-field2", placeholder="Password", type="password", id="user_password", required=True) }}
+                    <img 
+                        src="{{ url_for('static', filename='close.png') }}"
+                        data-open="{{ url_for('static', filename='open.png') }}"
+                        data-close="{{ url_for('static', filename='close.png') }}"
+                        alt="Toggle Password"
+                        id="toggleUserPassword"
+                        style="
+                            position: absolute;
+                            top: 50%;
+                            right: 30px;
+                            transform: translateY(-50%);
+                            width: 30px;
+                            height: 20px;
+                            cursor: pointer;
+                    ">
+                </div>
+
+                <div id="prosecutor-fields" style="display: none; margin-top: 15px;">
+                    <h3 style="color: #2a1d76;">Prosecutor Information</h3>
+                    <div style="display: flex; gap: 10px;">
+                        {{ form.license_no(class="input-field2", placeholder="License Number", style="flex: 1;") }}
+                        {{ form.office_no(class="input-field2", placeholder="Office Number", style="flex: 1;") }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages[-1:] %}
+                <div class="flash-toast">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+</body>
+</html>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Password Toggle
+    const passwordInput = document.getElementById('user_password');
+    const toggleIcon = document.getElementById('toggleUserPassword');
+    if (passwordInput && toggleIcon) {
+        toggleIcon.addEventListener('click', function () {
+            const isHidden = passwordInput.type === 'password';
+            passwordInput.type = isHidden ? 'text' : 'password';
+            toggleIcon.src = isHidden 
+                ? toggleIcon.dataset.open 
+                : toggleIcon.dataset.close;
+        });
+    }
+
+    // Role-based Prosecutor Field Toggle
+    const roleSelect = document.querySelector('[name="role"]');
+    const prosecutorFields = document.getElementById('prosecutor-fields');
+
+    function toggleProsecutorFields() {
+        const selectedRole = roleSelect.value;
+        prosecutorFields.style.display = (selectedRole === 'Prosecutor') ? 'block' : 'none';
+    }
+
+    roleSelect.addEventListener('change', toggleProsecutorFields);
+    toggleProsecutorFields();  // Trigger on load
+});
+</script>

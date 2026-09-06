@@ -1,0 +1,128 @@
+<!-- user_logs.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Logs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='lexverdict.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<header class="nav-header">
+    <a href="{{ url_for('admin.dashboard') }}">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="nav-logo">
+    </a>
+    <h1 class="nav-title">LexVerdict | Admin: {{ current_user.person.First_name }}</h1>
+    <nav class="nav-links">
+        <a href="{{ url_for('admin.manage_users') }}" class="{% if request.endpoint == 'admin.manage_users' %}active{% endif %}">List of Users</a>
+        <a href="{{ url_for('admin.archived_users') }}" class="{% if request.endpoint == 'admin.archived_users' %}active{% endif %}">Archived Users</a>
+        <a href="{{ url_for('admin.create_user') }}" class="{% if request.endpoint == 'admin.create_user' %}active{% endif %}">Add User</a>
+        <a href="{{ url_for('admin.user_logs') }}" class="{% if request.endpoint == 'admin.user_logs' %}active{% endif %}">User Logs</a>
+    </nav>
+    <style>
+        .case-table th:nth-child(1),
+        .case-table td:nth-child(1) { width: 70px; }  
+        .case-table th:nth-child(2),
+        .case-table td:nth-child(2) { width: 70px; } 
+        .case-table th:nth-child(3),
+        .case-table td:nth-child(3) { width: 170px; }
+        .case-table th:nth-child(4),
+        .case-table td:nth-child(4) { width: 70px; } 
+        .case-table th:nth-child(6),
+        .case-table td:nth-child(6) { width: 140px; } 
+    </style>
+</header>
+
+<div class="content">
+    <h2 class="section-title">USER ACTION LOGS</h2>
+    <br>
+    <div class="subpoena-controls">
+        <form method="get" style="display: flex; align-items: center; gap: 1rem;">
+            <label>Sort by:</label>
+            <select name="sort" class="sort-toggle" onchange="this.form.submit()">
+                <option value="LOG_ID" {% if current_sort == 'LOG_ID' %}selected{% endif %}>Log ID</option>
+                <option value="USER_ID" {% if current_sort == 'USER_ID' %}selected{% endif %}>User ID</option>
+                <option value="Full_Name" {% if current_sort == 'Full_Name' %}selected{% endif %}>Full Name</option>
+                <option value="Role" {% if current_sort == 'Role' %}selected{% endif %}>Role</option>
+                <option value="Action" {% if current_sort == 'Action' %}selected{% endif %}>Action</option>
+                <option value="Timestamp" {% if current_sort == 'Timestamp' %}selected{% endif %}>Date</option>
+            </select>
+
+            <select name="order" class="sort-toggle" onchange="this.form.submit()">
+                <option value="asc" {% if current_order == 'asc' %}selected{% endif %}>Ascending</option>
+                <option value="desc" {% if current_order == 'desc' %}selected{% endif %}>Descending</option>
+            </select>
+        </form>
+
+        <form method="get" style="display: flex; align-items: center; gap: 0.5rem; margin-left: auto;">
+            <input type="text" name="search" placeholder="Search" value="{{ current_search or '' }}">
+            <select name="filter" class="sort-toggle">
+                <option value="">All Fields</option>
+                <option value="USER_ID" {% if current_filter == 'USER_ID' %}selected{% endif %}>User ID</option>
+                <option value="Full_Name" {% if current_filter == 'Full_Name' %}selected{% endif %}>Full Name</option>
+                <option value="Role" {% if current_filter == 'Role' %}selected{% endif %}>Role</option>
+                <option value="Action" {% if current_filter == 'Action' %}selected{% endif %}>Action</option>
+                <option value="Timestamp" {% if current_filter == 'Timestamp' %}selected{% endif %}>Date</option>
+            </select>
+
+            <input type="hidden" name="sort" value="{{ current_sort or 'Timestamp' }}">
+            <input type="hidden" name="order" value="{{ current_order or 'desc' }}">
+
+            <button type="submit" class="btn" style="background-color: #2a1d76; color: white; padding: 5px 15px; border-radius: 20px;">
+                Search
+            </button>
+        </form>
+    </div>
+
+    <table class="case-table">
+        <thead>
+            <tr>
+                <th>Log ID</th>
+                <th>User ID</th>
+                <th>Full Name</th>
+                <th>Role</th>
+                <th>Action</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for logs in log %}
+            <tr>
+                <td>{{ logs.LOG_ID }}</td>
+                <td>{{ logs.USER_ID }}</td>
+                <td>{{ logs.Full_Name }}</td>
+                <td>{{ logs.Role }}</td>
+                <td><em>{{ logs.Action }}</em></td>
+                <td>{{ logs.Timestamp }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="pagination" style="margin-top: 1rem; display: flex; gap: 0.5rem; align-items: center;">
+        <button {% if page <= 1 %}disabled{% endif %}
+            onclick="location.href='?page={{ page - 1 }}&sort={{ current_sort }}&order={{ current_order }}&search={{ current_search }}&filter={{ current_filter }}'">
+            Back
+        </button>
+        
+        <span>Page {{ page }} of {{ total_pages }}</span>
+        
+        <button {% if page >= total_pages %}disabled{% endif %}
+            onclick="location.href='?page={{ page + 1 }}&sort={{ current_sort }}&order={{ current_order }}&search={{ current_search }}&filter={{ current_filter }}'">
+            Next
+        </button>
+    </div>
+</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages[-1:] %}
+                <div class="flash-toast">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+</body>
+</html>
+

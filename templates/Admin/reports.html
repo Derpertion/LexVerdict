@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LexVerdict | Reports</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='lexverdict.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <style>
+
+        .report-wrapper {
+            display: grid;
+            grid-template-columns: 260px 1fr 400px;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .filters {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+
+        .filters label {
+            font-weight: bold;
+            color: #2a1d76;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filters input,
+        .filters select {
+            margin-top: 4px;
+            padding: 6px 10px;
+            font-size: 0.9rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        .filters button {
+            background-color: #4a76fd;
+            color: white;
+            padding: 8px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .filters button:hover {
+            background-color: #3758d5;
+        }
+
+        .chart-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .graph-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
+            text-align: center;
+            font-weight: bold;
+            color: #2a1d76;
+            margin-bottom: 8px;
+        }
+
+        canvas {
+            width: 100% !important;
+            aspect-ratio: 1 / 1 !important; /* keeps circle */
+        }
+
+        .summary-tables {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .summary-tables table {
+            width: 100%;
+            background: white;
+            border-collapse: collapse;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 4px rgba(0,0,0,0.1);
+            font-size: 0.9rem;
+        }
+
+        .summary-tables th, .summary-tables td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .summary-tables th {
+            background: #2a1d76;
+            color: white;
+            text-align: left;
+        }
+
+        .summary-tables tr:last-child td {
+            border-bottom: none;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px; 
+        }
+
+        .section-title h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0; 
+            line-height: 1; 
+        }
+
+        .generate-btn {
+            background-color: #4a76fd;
+            color: white;
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+
+        .generate-btn:hover {
+            background-color: #3758d5;
+        }
+        
+        .hidden-graph {
+    display: none !important;
+}
+    </style>
+</head>
+
+<body>
+<header class="nav-header">
+    <a href="{{ url_for('admin.dashboard') }}">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="nav-logo">
+    </a>
+    <h1 class="nav-title">LexVerdict | Admin: {{ current_user.person.First_name }}</h1>
+    <nav class="nav-links">
+        <a href="{{ url_for('admin.subpoena_list') }}">List of Cases</a>
+        <a href="{{ url_for('admin.create_subpoena') }}">Add Cases</a>
+        <a href="{{ url_for('admin.verify_cases') }}">Verify Cases</a>
+        <a href="{{ url_for('admin.reports') }}" class="active">Generate Report</a>
+    </nav>
+</header>
+
+<div class="content">
+    <div class="section-title">
+        <h2>CASE REPORT</h2>
+        <button id="generatePDF" class="generate-btn" type="button">Generate Report PDF</button>
+    </div>
+    <br>
+
+    <div class="report-wrapper">
+        <!-- Left: Filters -->
+        <form class="filters" method="get" action="{{ url_for('admin.reports') }}">
+            <label>Date From:<input type="date" name="start_date" value="{{ filters.get('start_date', '') }}"></label>
+            <label>Date To:<input type="date" name="end_date" value="{{ filters.get('end_date', '') }}"></label>
+
+            <label>Case Status:
+                <select name="verdict">
+                    <option value="">All</option>
+                    <option value="For Filing" {{ 'selected' if filters.get('verdict') == 'For Filing' else '' }}>Filed</option>
+                    <option value="Dismissed" {{ 'selected' if filters.get('verdict') == 'Dismissed' else '' }}>Dismissed</option>
+                </select>
+            </label>
+
+            <label>Case Type:
+                <select name="crime" id="crime-select" multiple>
+                    {% for c in crimes %}
+                        <option value="{{ c }}" {% if c in filters.getlist('crime') %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>Police Station:
+                <input type="text" list="stations" id="police_station" name="station" value="{{ filters.get('station', '') }}">
+                <datalist id="stations">
+                    <option value="PNP, Aliaga, Nueva Ecija">
+                    <option value="PNP, Bongabon, Nueva Ecija">
+                    <option value="PNP, Cabiao, Nueva Ecija">
+                    <option value="PNP, Carranglan, Nueva Ecija">
+                    <option value="PNP, Cuyapo, Nueva Ecija">
+                    <option value="PNP, Gabaldon, Nueva Ecija">
+                    <option value="PNP, General Mamerto Natividad, Nueva Ecija">
+                    <option value="PNP, General Tinio, Nueva Ecija">
+                    <option value="PNP, Guimba, Nueva Ecija">
+                    <option value="PNP, Jaen, Nueva Ecija">
+                    <option value="PNP, Laur, Nueva Ecija">
+                    <option value="PNP, Licab, Nueva Ecija">
+                    <option value="PNP, Llanera, Nueva Ecija">
+                    <option value="PNP, Lupao, Nueva Ecija">
+                    <option value="PNP, Nampicuan, Nueva Ecija">
+                    <option value="PNP, Pantabangan, Nueva Ecija">
+                    <option value="PNP, Peñaranda, Nueva Ecija">
+                    <option value="PNP, Quezon, Nueva Ecija">
+                    <option value="PNP, Rizal, Nueva Ecija">
+                    <option value="PNP, San Antonio, Nueva Ecija">
+                    <option value="PNP, San Isidro, Nueva Ecija">
+                    <option value="PNP, San Leonardo, Nueva Ecija">
+                    <option value="PNP, Santa Rosa, Nueva Ecija">
+                    <option value="PNP, Santa Domingo, Nueva Ecija">
+                    <option value="PNP, Talavera, Nueva Ecija">
+                    <option value="PNP, Talugtug, Nueva Ecija">
+                    <option value="PNP, Zaragoza, Nueva Ecija">
+                </datalist>
+            </label>
+
+            <label>Sex:
+                <select name="sex">
+                    <option value="">All</option>
+                    <option value="Male" {{ 'selected' if filters.get('sex') == 'Male' else '' }}>Male</option>
+                    <option value="Female" {{ 'selected' if filters.get('sex') == 'Female' else '' }}>Female</option>
+                </select>
+            </label>
+
+            <label>Age Group:
+                <select name="age_group">
+                    <option value="">All</option>
+                    {% for group in [ '18-30', '31-45', '46-60', '61+'] %}
+                        <option value="{{ group }}" {{ 'selected' if filters.get('age_group') == group else '' }}>{{ group }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <button type="submit">Generate</button>
+        </form>
+
+        <!-- Middle: Graphs -->
+        {% if has_filters %}
+        <div class="chart-section">
+            <div class="graph-card"><div class="chart-title">Crime Distribution</div><canvas id="crimeChart"></canvas></div>
+            <div class="graph-card {% if filters.get('station') %}hidden-graph{% endif %}"><div class="chart-title">Cases per Police Station</div><canvas id="stationChart"></canvas></div>
+            <div class="graph-card {% if filters.get('sex') %}hidden-graph{% endif %}"><div class="chart-title">Sex Distribution</div><canvas id="sexChart"></canvas></div>
+            <div class="graph-card {% if filters.get('age_group') %}hidden-graph{% endif %}"><div class="chart-title">Age Group of Victims</div><canvas id="ageChart"></canvas></div>
+            <div class="graph-card"><div class="chart-title">Verdict Distribution</div><canvas id="verdictChart"></canvas></div>
+        </div>
+
+        <!-- Right: Tables -->
+        <div class="summary-tables">
+            <table>
+                <tr><th colspan="2">Case Summary</th></tr>
+                <tr><td>Total Cases</td><td>{{ total_cases }}</td></tr>
+                <tr><td>Cases Filed</td><td>{{ filed }}</td></tr>
+                <tr><td>Cases Dismissed</td><td>{{ dismissed }}</td></tr>
+                {% if most_common_crime %}
+                <tr class="{% if filters.get('crime') %}hidden-graph{% endif %}"><td>Top Case Type</td><td>{{ most_common_crime }}</td></tr>
+                {% endif %}
+            </table>
+
+            <table>
+                <tr><th>Verdict Distribution</th><th>Count</th></tr>
+                {% for item in verdict_data %}
+                <tr><td>{{ item.label }}</td><td>{{ item.count }}</td></tr>
+                {% endfor %}
+            </table>
+
+            <table class="{% if filters.get('sex') %}hidden-graph{% endif %}">
+                <tr><th>Sex Distribution</th><th>Count</th></tr>
+                {% for item in sex_data %}
+                <tr><td>{{ item.label }}</td><td>{{ item.count }}</td></tr>
+                {% endfor %}
+            </table>
+
+            <table class="{% if filters.get('age_group') %}hidden-graph{% endif %}">
+                <tr><th>Age Group</th><th>Count</th></tr>
+                {% for item in age_data %}
+                <tr><td>{{ item.label }}</td><td>{{ item.count }}</td></tr>
+                {% endfor %}
+            </table>
+
+            <table class="{% if filters.get('station') %}hidden-graph{% endif %}">
+                <tr><th>Police Station</th><th>Count</th></tr>
+                {% for item in station_data %}
+                <tr><td>{{ item.label }}</td><td>{{ item.count }}</td></tr>
+                {% endfor %}
+            </table>
+
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('#crime-select').select2({
+        placeholder: "Search and add crimes",
+        ajax: {
+            url: '/search_offense',
+            dataType: 'json',
+            delay: 250,
+            data: params => ({ q: params.term }),
+            processResults: data => ({ results: data }),
+            cache: true
+        },
+        width: 'resolve',
+        multiple: true
+    });
+});
+
+function safeChart(id, config) {
+    const ctx = document.getElementById(id);
+    if (ctx && config.data.labels.length > 0) new Chart(ctx, config);
+}
+
+const crimeData = {{ bar_chart_data | tojson | safe }};
+const verdictData = {{ verdict_data | tojson | safe }};
+const sexData = {{ sex_data | tojson | safe }};
+const ageData = {{ age_data | tojson | safe }};
+const stationData = {{ station_data | tojson | safe }};
+
+function addPercentageLabels(data) {
+    const total = data.reduce((sum, d) => sum + d.count, 0);
+    return data.map(d => ({ label: `${d.label} (${((d.count / total) * 100).toFixed(1)}%)`, count: d.count }));
+}
+
+const verdictWithPercent = addPercentageLabels(verdictData);
+const sexWithPercent = addPercentageLabels(sexData);
+const ageWithPercent = addPercentageLabels(ageData);
+
+safeChart("crimeChart", {
+    type: "bar",
+    data: { labels: crimeData.map(d => d.label), datasets: [{ label: "Cases by Crime", data: crimeData.map(d => d.count), backgroundColor: "#2a1d76" }] },
+    options: { responsive: true, maintainAspectRatio: true, scales: { x: {ticks: { display: false }}, y: { beginAtZero: true } } }
+});
+
+safeChart("verdictChart", {
+    type: "pie",
+    data: { labels: verdictWithPercent.map(d => d.label), datasets: [{ data: verdictWithPercent.map(d => d.count), backgroundColor: ["#4CAF50", "#FF5733", "#FFC107"] }] },
+    options: { maintainAspectRatio: true, aspectRatio: 1, plugins: { legend: { position: 'right' } } }
+});
+
+safeChart("sexChart", {
+    type: "doughnut",
+    data: { labels: sexWithPercent.map(d => d.label), datasets: [{ data: sexWithPercent.map(d => d.count), backgroundColor: ["#2196F3", "#E91E63"] }] },
+    options: { maintainAspectRatio: true, aspectRatio: 1, plugins: { legend: { position: 'right' } } }
+});
+
+safeChart("ageChart", {
+    type: "polarArea",
+    data: { labels: ageWithPercent.map(d => d.label), datasets: [{ data: ageWithPercent.map(d => d.count), backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#66BB6A", "#FF7043"] }] },
+    options: { maintainAspectRatio: true, aspectRatio: 1, plugins: { legend: { position: 'right' } } }
+});
+
+safeChart("stationChart", {
+    type: "bar",
+    data: { labels: stationData.map(d => d.label), datasets: [{ label: "Cases by Station", data: stationData.map(d => d.count), backgroundColor: "#009688" }] },
+    options: { indexAxis: "y", maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: {y: {ticks: { display: false }} }
+}});
+
+document.getElementById('generatePDF').addEventListener('click', function() {
+  // collect chart canvas images (in DOM order)
+  const canvases = Array.from(document.querySelectorAll('canvas'));
+  const images = canvases.map(c => {
+    try { return c.toDataURL('image/png'); }
+    catch(e) { console.warn('Canvas capture failed', e); return null; }
+  }).filter(Boolean);
+
+  // gather current URL filters (use search params)
+  const params = new URLSearchParams(window.location.search);
+  const form = new FormData();
+
+  // append filters (flat values and repeated 'crime' keys)
+  // keep multiple crime values by reading selected options if present
+  // but also append any querystring values just to be safe
+  for (const [k, v] of params.entries()) {
+    // param may appear multiple times; FormData.append will keep multiples
+    form.append(k, v);
+  }
+
+  // Also, if you are using <select multiple name="crime"> and Select2,
+  // get selected values from the element to ensure they're present
+  const crimeEl = document.querySelector('#crime-select');
+  if (crimeEl) {
+    const selected = $(crimeEl).val(); // Select2 returns array
+    if (selected && selected.length) {
+      // remove existing crime fields (if any)
+      // then append selected ones
+      selected.forEach(val => form.append('crime', val));
+    }
+  }
+
+  // append other UI filter elements if they are not present in URL
+  const keys = ['start_date','end_date','verdict','station','sex','age_group'];
+  keys.forEach(k => {
+    const el = document.querySelector(`[name="${k}"]`);
+    if (el && el.value && !params.has(k)) {
+      form.append(k, el.value);
+    }
+  });
+
+  // append charts as JSON
+  form.append('charts', JSON.stringify(images));
+
+  // POST to server and open returned PDF
+  fetch('/reports/pdf', {
+    method: 'POST',
+    body: form
+  }).then(resp => {
+    if (!resp.ok) throw new Error('PDF generation failed');
+    return resp.blob();
+  }).then(blob => {
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  }).catch(err => {
+    console.error(err);
+    alert('Failed to generate PDF. Check console for details.');
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>List of Cases</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='lexverdict.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .case-table th:nth-child(1),
+        .case-table td:nth-child(1) { width: 130px; }
+        .case-table th:nth-child(2),
+        .case-table td:nth-child(2) { width: 100px; }
+        .case-table th:nth-child(3),
+        .case-table td:nth-child(3) { width: 100px; } 
+    </style>
+</head>
+<body>
+
+<header class="nav-header">
+    <a href="{{ url_for('prosecutor.dashboard') }}" class="{% if request.endpoint == 'prosecutor.dashboard' %}active{% endif %}"><img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="nav-logo"></a>
+    <h1 class="nav-title">LexVerdict | Prosecutor: {{ current_user.person.First_name }}</h1>
+    <nav class="nav-links">
+        <a href="{{ url_for('prosecutor.subpoena_list') }}" class="{% if request.endpoint == 'prosecutor.subpoena_list' %}active{% endif %}">List of Cases</a>
+        <a href="{{ url_for('prosecutor.verify_cases') }}" class="{% if request.endpoint == 'prosecutor.verify_cases' %}active{% endif %}">Verify Cases</a>
+    </nav>
+</header>
+
+<div class="content">
+    <h2 class="section-title">LIST OF CASES</h2>
+
+<div class="subpoena-controls">
+    <form method="get" style="display: flex; align-items: center; gap: 1rem;">
+        <label>Sort by:</label>
+        <select name="sort" class="sort-toggle" onchange="this.form.submit()">
+            <option value="Docket_Number" {% if current_sort == 'Docket_Number' %}selected{% endif %}>Docket No.</option>
+            <option value="Crime" {% if current_sort == 'Crime' %}selected{% endif %}>Case</option>
+            <option value="Police_Station" {% if current_sort == 'Police_Station' %}selected{% endif %}>Police Station</option>
+            <option value="Prosecutor" {% if current_sort == 'Prosecutor' %}selected{% endif %}>Prosecutor</option>
+            <option value="Verdict" {% if current_sort == 'Verdict' %}selected{% endif %}>Verdict</option>
+            <option value="Complainant" {% if current_sort == 'Complainant' %}selected{% endif %}>Complainant</option>
+            <option value="Respondent" {% if current_sort == 'Respondent' %}selected{% endif %}>Respondent</option>
+        </select>
+
+        <select name="order" class="sort-toggle" onchange="this.form.submit()">
+            <option value="asc" {% if current_order == 'asc' %}selected{% endif %}>Ascending</option>
+            <option value="desc" {% if current_order == 'desc' %}selected{% endif %}>Descending</option>
+        </select>
+    </form>
+
+    <form method="get" style="display: flex; align-items: center; gap: 0.5rem; margin-left: auto;">
+        <input type="text" name="search" placeholder="Search" value="{{ current_search or '' }}">
+
+        <select name="filter" class="sort-toggle">
+            <option value="">All Fields</option>
+            <option value="Docket_Number" {% if current_filter == 'Docket_Number' %}selected{% endif %}>Docket No</option>
+            <option value="Crime" {% if current_filter == 'Crime' %}selected{% endif %}>Case</option>
+            <option value="Complainant" {% if current_filter == 'Complainant' %}selected{% endif %}>Complainant</option>
+            <option value="Respondent" {% if current_filter == 'Respondent' %}selected{% endif %}>Respondent</option>
+            <option value="Police_Station" {% if current_filter == 'Police_Station' %}selected{% endif %}>Police Station</option>
+            <option value="Prosecutor" {% if current_filter == 'Prosecutor' %}selected{% endif %}>Prosecutor</option>
+            <option value="Verdict" {% if current_filter == 'Verdict' %}selected{% endif %}>Verdict</option>
+        </select>
+
+        <input type="hidden" name="sort" value="{{ current_sort or 'Date_' }}">
+        <input type="hidden" name="order" value="{{ current_order or 'desc' }}">
+
+        <button type="submit" class="btn" style="background-color: #2a1d76; color: white; padding: 5px 15px; border-radius: 20px;">
+            Search
+        </button>
+    </form>
+</div>
+
+    <table class="case-table">
+        <thead>
+            <tr>
+                <th>Docket No.</th>
+                <th>Case</th>
+                <th>Complainant</th>
+                <th>Respondent</th>
+                <th>Police Station</th>
+                <th>Date</th>
+                <th>Prosecutor</th>
+                <th>PIN</th>
+                <th>Verdict</th>
+                <th>Court</th>
+                <th>Verdict Date</th>
+                <th>Command</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for case in subpoenas %}
+            <tr>
+                <td>{{ case.Docket_Number }}</td>
+                <td>{{ case.Crime }}</td>
+                <td>{{ case.Complainant or '—' }}</td>
+                <td>{{ case.Respondent or '—' }}</td>
+                <td>{{ case.Police_Station }}</td>
+                <td>{{ case.Date_.strftime('%B %d, %Y') if case.Date_ else '—' }}</td>
+                <td>{{ case.Prosecutor or '—' }}</td>
+                <td>{{ case.Pin or '—' }}</td>
+                <td>
+                    {% if case and case.Status == 'Approved' and case.Verdict == 'For Filing' %}
+                       <p style="color: #4caf50;"> <b>For Filing</b></p>
+                    {% elif case and case.Status == 'Approved' and case.Verdict == 'Dismissed' %}
+                        <p style="color: #e53935;"> <b>Dismissed</b></p>
+                    {% else %}
+                        PENDING
+                    {% endif %}
+                </td>
+                <td>
+                    {% if case and case.Status == 'Approved' and case.Verdict == 'For Filing' %}
+                    {{ case.Court }}
+                    {% else %}
+                         —
+                    {% endif %}
+                </td>
+                <td>
+                    {% if case and case.Status == 'Approved' and case.Verdict_Date %}
+                        {{ case.Verdict_Date.strftime('%B %d, %Y') }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    {% if case and case.Status == 'Approved' %}
+                        <p style="color: #4caf50;"> <b>Resolved</b></p>
+                    {% elif case and case.Verdict == 'For Filing' or case.Verdict == 'Dismissed' %}
+                        <p>Resolving...</p>
+                    {% else %}
+                        <p>Due for Hearing</p>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+        <!-- Pagination -->
+    <div class="pagination" style="margin-top: 1rem; display: flex; gap: 0.5rem; align-items: center;">
+        <button {% if page <= 1 %}disabled{% endif %}
+            onclick="location.href='?page={{ page - 1 }}&sort={{ current_sort }}&order={{ current_order }}&search={{ current_search }}&filter={{ current_filter }}'">
+            Back
+        </button>
+        
+        <span>Page {{ page }} of {{ total_pages }}</span>
+        
+        <button {% if page >= total_pages %}disabled{% endif %}
+            onclick="location.href='?page={{ page + 1 }}&sort={{ current_sort }}&order={{ current_order }}&search={{ current_search }}&filter={{ current_filter }}'">
+            Next
+        </button>
+    </div>
+</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages[-1:] %}
+                <div class="flash-toast">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+</body>
+</html>
+

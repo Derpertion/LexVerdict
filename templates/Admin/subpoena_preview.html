@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Subpoena - {{ subpoena.Docket_Number }}</title>
+
+<style>
+        @page {
+            size: 8.5in 13in;
+            margin: 0.5in 0.75in 0.75in 0.75in;
+            @bottom-center {
+                content: "To view this case online, visit PlaceHolder.com, Enter the I.S. NO., and PIN: {{ pin }}";
+                font-size: 10pt;
+                color: #444;
+            }
+        }
+
+    body {
+        font-family: "Times New Roman", serif;
+        font-size: 11pt;
+        line-height: 1.15;
+        margin: 0;
+    }
+
+    /* HEADER */
+    .header {
+        width: 100%;
+        position: relative;
+        text-align: center;
+        margin-bottom: 12px;
+    }
+
+    .header img {
+        width: 95px;
+        position: absolute;
+        top: 0;
+    }
+
+    .logo-left { left: 0; }
+    .logo-right { right: 0; }
+
+    /* Horizontal separators */
+    .separator {
+        text-align: center;
+        margin-top: 12px;
+        margin-bottom: 12px;
+        font-size: 12pt;
+    }
+
+    /* Party blocks */
+    .party-line {
+        margin-bottom: 3px;
+    }
+
+    .versus {
+        margin-left: 4em;
+    }
+
+    /* NPS block (right aligned) */
+    .nps-block {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 5px;
+        margin-bottom: 10px;
+    }
+
+    /* SUBPOENA title */
+    .subpoena-title {
+        text-align: center;
+        margin: 15px 0 12px 0;
+        font-weight: bold;
+        text-decoration: underline;
+        font-size: 12pt;
+    }
+
+    .to-block {
+        margin-bottom: 10px;
+        margin-left: 10px;
+    }
+
+    .to-entry {
+        display: flex;
+        justify-content: space-between;
+        margin-left: 25px;
+        margin-bottom: 2px;
+    }
+
+    .address {
+        white-space: nowrap;
+        margin-left: 100px;
+    }
+
+    /* Paragraphs */
+    p {
+        margin: 4px 0;
+        text-align: justify;
+    }
+
+    /* Signature block */
+    .signature {
+        margin-top: 35px;
+        text-align: right;
+        margin-right: 40px;
+    }
+
+    .return-block {
+        margin-top: 50px;
+    }
+</style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <img src="DOJ_logo.jpg" class="logo-left">
+    <img src="BP_logo.png" class="logo-right">
+
+    <div>
+        REPUBLIC OF THE PHILIPPINES<br>
+        <strong>DEPARTMENT OF JUSTICE</strong><br>
+        <strong>NATIONAL PROSECUTION SERVICE</strong><br>
+        <strong>OFFICE OF THE PROVINCIAL PROSECUTOR</strong><br>
+        Province of Nueva Ecija<br>
+        Cabanatuan City
+    </div>
+</div>
+
+<p>The Chief of Police <br> <strong>{{ subpoena.Police_Station|upper }}</strong></p>
+
+<p style="margin-left: 4em;">You are hereby ordered to cause the service of this Subpoena upon the person/s cited herein </p>
+<p>and return the same on or before the date of the investigation.</p>
+
+<div class="separator">x---------------------------------------------------------------------------------------------------------------------------x</div>
+
+<!-- Complainants -->
+ <div>
+    {% for person, address in complainants %}
+        <div class="party-line"> <strong>
+            {{ person.First_name|upper }} {{ (person.Middle_name or '')|upper }} {{ person.Last_name|upper }} {{ (person.Suffix or '')|upper }}
+        </div> </strong>
+    {% endfor %}
+    <div style="margin-left: 80px;">Complainant/s</div>
+</div>
+<br>
+<div style="display:flex; justify-content:space-between;">
+    <div class="versus">- versus -</div>
+    
+    <div style="text-align:right; padding-right:10px;">
+        NPS No. <strong> {{ subpoena.Docket_Number }}</strong><br>
+        For:<strong>{{ crimes_display|upper|safe }}</strong> 
+    </div>
+</div>
+
+<div>
+    {% for person, address in respondents %}
+        <div class="party-line"> <strong>
+            {{ person.First_name|upper }} {{ (person.Middle_name or '')|upper }} {{ person.Last_name|upper }} {{ (person.Suffix or '')|upper }}
+        </div> </strong>
+    {% endfor %}
+    <div style="margin-left:80px;">Respondent/s</div>
+</div>
+
+<div >x-------------------------------------------------------x</div>
+
+<div class="subpoena-title">SUBPOENA</div>
+
+<!-- TO BLOCK -->
+<div class="to-block"><strong>To:</strong></div>
+
+{% for group in grouped_parties %}
+    {% for person, address in group.people %}
+        <div class="to-entry"> <strong>
+            <span>{{ person.First_name|upper }} {{ (person.Middle_name or '')|upper }} {{ person.Last_name|upper }}</span>
+            <span class="address">– Brgy. {{ address.Barangay }}, {{ address.Municipality }}, {{ address.Province }}</span>
+        </div> </strong>
+    {% endfor %}
+{% endfor %}
+
+<br>
+
+<!-- MAIN BODY -->
+<p style="margin-left: 4em;">Under and by virtue of the authority vested in me by law, you are hereby commanded and required to  </p>
+
+<p>appear before this Office in the Preliminary Investigation of the above-entitled case on 
+    <strong>
+    {% if hearing_date_1 and hearing_date_2 %}
+        {{ hearing_date_1.strftime('%B %d & ') }}{{ hearing_date_2.strftime('%d, %Y') }}
+    {% else %}
+        {{ hearing_date_1.strftime('%B %d, %Y') }}
+    {% endif %}
+    </strong>
+    at <strong>{{ hearing_date_1.strftime('%I:%M %p') }}</strong>, at the Office of the Provincial Prosecutor, Hall of Justice, Accfa District, Maharlika Highway, Cabanatuan City. 
+</p>
+
+<p style="margin-left: 4em;"> Respondents is/are directed to submit his/her/their counter-affidavit and other supporting documents  or </p> 
+<p>
+    affidavit/s of your witness/es, if any, to be sworn to before me on 
+    <strong>{{ hearing_date_1.strftime('%B %d, %Y') }} </strong> at {{ hearing_date_1.strftime('%I:%M %p') }}
+    Attached is a copy of the complaint and other evidence submitted by the complainant.
+</p>
+
+<p style="margin-left: 4em;"> Respondent/s is/are hereby <strong>WARNED</strong> that failure on your part to comply with this Subpoena shall be</p>
+<p>
+     considered a waiver of your right to present your defense and the case shall be considered submitted for resolution based on the evidence on record.
+</p>
+
+<p><strong>FAIL NOT UNDER THE PENALTY OF LAW.</strong></p>
+
+<p><strong>WITNESS MY HAND</strong> this {{ issue_date.strftime('%d') }}<sup>th</sup> day of {{ issue_date.strftime('%B, %Y') }} at Cabanatuan City.</p>
+
+<!-- SIGNATURE -->
+<div class="signature">
+    <strong>HON. {{ prosecutor.First_name|upper }} {{ prosecutor.Last_name|upper }}</strong><br>
+    Prosecution Attorney<br><br>
+    By: {{ staff_name }}
+</div>
+
+<!-- RETURN -->
+<div class="return-block">
+    <strong>Return:</strong>
+    On this day, I have served a copy of the foregoing subpoena to ________________________________.<br><br>
+    Server:
+    ____________________________
+</div>
+
+</body>
+</html>
