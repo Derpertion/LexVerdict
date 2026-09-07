@@ -81,11 +81,7 @@ pip install -r requirements.txt
 
 ### Database Setup
 
-The app does **not** create its schema automatically — it assumes the MySQL database already exists. In MySQL:
-
-```sql
-CREATE DATABASE IF NOT EXISTS lexverdict CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-```
+The app relies on MySql, with the sql file for the Database, can be downloaded, and imported.
 
 The application relies on several database **views** that must be created ahead of time in the database (they are read by the app but are not included in this repository):
 
