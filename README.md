@@ -139,4 +139,4 @@ Configure the config class by setting `FLASK_ENV` to `development` or `productio
 
 ## License
 
-This project is provided for educational and internal office use. No license is specified.
+This project declares the MIT License in composer.json. A standalone license file is not currently included in the repository.
