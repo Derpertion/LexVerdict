@@ -1,266 +1,142 @@
-# LexVerdict
+# LexVerdict — Case Management & Subpoena Tracking System
 
-**Subpoena and Case Resolution Monitoring System**  
-For the Office of the Provincial Prosecutor (OPP), Nueva Ecija
+LexVerdict is a Flask-based case management system built for Philippine law enforcement offices. It digitizes the subpoena workflow — from case filing and verification to resolution — while providing role-based access for secretaries, prosecutors, process servers (PS), and system administrators. It also generates court-ready **PDF subpoenas** and printable **case statistics reports**.
 
-> A web-based system for managing subpoenas, monitoring case resolutions, and providing secure case lookup.
+## Features
 
-## Overview
+- **Role-based dashboards** for `superuser` (admin), `Secretary`, `Prosecutor`, and `PS` (process server) with route-level access control.
+- **Subpoena management** — create, edit, view, and track subpoenas with complainant/respondent parties, offenses, hearing dates, and police stations.
+- **Verification workflow** — subpoenas and resolutions flow through a approve / deny pipeline with denial comments and full audit logging.
+- **Resolution tracking** — record verdicts (`For Filing` / `Dismissed`) per case.
+- **PDF subpoena generation** — multi-page, court-formatted subpoenas (DOJ/NPS letterhead) generated via WeasyPrint.
+- **Case report dashboard & PDF export** — filter cases by date range, verdict, crime type, police station, sex, and age group; view Chart.js visualizations and summary tables, then export a landscape A4 PDF report.
+- **PDF generation** — reports are generated with WeasyPrint, so the dashboard and PDF always share the exact same filter logic.
+- **Public case lookup** — anyone can look up a resolved case online using a Docket Number + PIN code.
+- **User management** — create, edit, archive, restore, and log user activity. Archived users cannot log in.
+- **Offense catalog management** — maintain the list of crimes and their law references.
 
-LexVerdict was developed to replace a manual workflow that relied on paper records, handwritten logs, and Excel files. It provides a centralized system for creating, verifying, approving, and tracking subpoenas and case resolutions.
+## Tech Stack
 
-The project focuses on three things:
+| Layer      | Technology |
+|------------|-----------|
+| Backend    | Python 3, Flask, Flask-Login, Flask-WTF / WTForms |
+| Database   | MySQL via SQLAlchemy (PyMySQL driver) |
+| PDF        | WeasyPrint (HTML → PDF) |
+| Frontend   | Jinja2 templates, Chart.js, jQuery, Select2 |
 
-- **Case & subpoena management**
-- **Resolution monitoring**
-- **Secure reporting and case lookup**
+## Role Overview
 
-## Key Features
+| Role        | Primary responsibilities |
+|-------------|--------------------------|
+| `superuser` | Full system administration: manage users, crimes, cases, verify filings, generate reports and PDFs |
+| `Secretary` | Create and manage subpoenas, submit for verification |
+| `Prosecutor`| Review and verify subpoenas/resolutions, track case statuses |
+| `PS`        | Process server — read-only case lists / dashboards |
 
-- 🔐 **Role-based authentication** for administrators, prosecutors, secretaries, and process servers
-- 📋 **Subpoena management** — create, edit, verify, approve, deny, and track subpoenas
-- ⚖️ **Resolution management** — record and monitor case resolutions
-- 🔎 **Public case lookup** using Docket Number + PIN
-- 📄 **PDF generation** for subpoenas and transmittals
-- 📊 **Reports & analytics** for case trends and distributions
-- 📝 **Activity logging** for accountability and traceability
-- 🛡️ **Access control** for protecting restricted case information
+## Project Structure
 
-## Workflow
-
-```text
-Secretary
-   │
-   ▼
-Create Subpoena
-   │
-   ▼
-Assistant Prosecutor
-   │
-   ├── Verify / Review
-   │
-   ▼
-Provincial Prosecutor / Chief Admin
-   │
-   ├── Approve
-   └── Deny + Comment
-   │
-   ▼
-Resolution Recorded
-   │
-   ▼
-Approved Case
-   │
-   └── Public Lookup (Docket No. + PIN)
 ```
-
-## User Roles
-
-| Role | Main Responsibilities |
-|---|---|
-| **Provincial Prosecutor / Chief Admin** | Final approval, user management, reports, logs, case oversight |
-| **Assistant Prosecutor** | Review and verify subpoenas; approve or deny assigned cases |
-| **Secretary** | Encode case information, create subpoenas, submit cases, monitor status |
-| **Process Server** | Access subpoena information needed for service operations |
-| **Complainant / Respondent** | Limited case lookup using Docket Number and PIN |
-
-## Technology Stack
-
-**Backend**
-- Python
-- Flask
-- Flask-SQLAlchemy
-- Flask-Login
-- Flask-WTF
-- PyMySQL
-
-**Frontend**
-- HTML
-- CSS
-- JavaScript
-- Bootstrap
-- Select2
-- Chart.js
-
-**Database**
-- MySQL / MariaDB
-
-**Document Generation**
-- WeasyPrint
-
-**Development Tools**
-- XAMPP
-- Visual Paradigm
-- Figma
-
-## Architecture
-
-```text
-┌───────────────────────┐
-│      Web Browser      │
-└───────────┬───────────┘
-            │
-            ▼
-┌───────────────────────┐
-│      Flask App        │
-│  Routes / Forms / UI  │
-└───────────┬───────────┘
-            │
-      ┌─────┴─────┐
-      ▼           ▼
-┌───────────┐ ┌──────────────┐
-│ MySQL /   │ │ PDF Generator│
-│ MariaDB   │ │  WeasyPrint  │
-└───────────┘ └──────────────┘
-```
-
-## Security
-
-LexVerdict includes:
-
-- Authentication and role-based authorization
-- Password protection
-- PIN-protected public lookup
-- Restricted access to case information
-- User activity logging
-- Input validation
-- Controlled access to administrative functions
-
-Because the system handles sensitive legal records, access to information is intentionally limited according to user roles.
-
-## Project Scope
-
-LexVerdict covers:
-
-- Subpoena creation and management
-- Subpoena verification and approval
-- Case resolution recording and monitoring
-- Transmittal generation
-- User/account management
-- Activity logs
-- Reporting and analytics
-- PIN-based public lookup
-
-### Out of Scope
-
-The project does **not** aim to provide:
-
-- Evidence management
-- Court scheduling
-- Complete end-to-end court case management
-- AI-based legal decision-making
-- Automated legal judgments
-
-## Evaluation
-
-The system was evaluated using ISO/IEC 25010-based software quality criteria.
-
-**End-user evaluation:** **3.81 — Functional**
-
-The evaluation covered:
-
-- Functional suitability
-- Performance efficiency
-- Compatibility
-- Usability
-
-## Development
-
-The project followed a **Developmental Research Approach** using a **Modified Waterfall Model**, covering:
-
-1. Requirements Analysis
-2. System Design
-3. Implementation
-4. Testing
-5. Deployment
-6. Maintenance
-
-The database design followed the **Database Life Cycle (DBLC)** approach.
-
-## Repository Structure
-
-A typical project structure is:
-
-```text
-LexVerdict/
+.
 ├── app/
-│   ├── routes/
-│   ├── models/
-│   ├── forms/
-│   ├── templates/
-│   └── static/
-├── database/
-├── docs/
-├── generated/
-├── requirements.txt
-├── config.py
-└── run.py
+│   ├── __init__.py          # App factory, blueprints, CSRF
+│   ├── models.py            # SQLAlchemy ORM models
+│   ├── forms.py             # Flask-WTF forms
+│   ├── rbac.py              # role_required decorator
+│   ├── services.py          # Business logic incl. shared report query helper
+│   ├── utils.py             # Audit logging helpers
+│   └── routes/
+│       ├── admin_routes.py      # Admin dashboard, cases, verify, reports, users
+│       ├── secret_routes.py     # Secretary workflows
+│       ├── prosecutor_routes.py # Prosecutor workflows
+│       ├── ps_routes.py         # Process server views
+│       ├── auth_routes.py       # Login / logout / landing page
+│       └── public_routes.py     # Public docket + PIN lookup
+├── templates/           # Jinja2 templates (organised by role)
+├── static/              # CSS, JS, logos
+├── config.py            # Environment-aware Flask config
+├── run.py               # App entry point
+└── requirements.txt
 ```
-
-> The actual repository structure may differ depending on the current implementation.
 
 ## Getting Started
 
-### Requirements
+### Prerequisites
 
-- Python 3.x
-- MySQL or MariaDB
-- XAMPP or another local database environment
-- WeasyPrint dependencies
+- Python 3.10+
+- MySQL server (the app expects a database named `lexverdict` by default)
+- **GTK3 runtime** for WeasyPrint PDF generation on Windows:
+  - Download the installer from the [GTK for Windows Runtime Environment Installer](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases)
+  - Run `gtk3-runtime-*.exe` and install it
 
 ### Installation
 
 ```bash
-git clone <repository-url>
-cd LexVerdict
-
+# 1. Create and activate a virtual environment (Windows)
 python -m venv venv
-```
-
-Activate the virtual environment:
-
-**Windows**
-```bash
 venv\Scripts\activate
-```
 
-**Linux / macOS**
-```bash
-source venv/bin/activate
-```
-
-Install dependencies:
-
-```bash
+# 2. Install dependencies
 pip install -r requirements.txt
 ```
 
-Configure the database and application environment, then start the Flask application:
+### Database Setup
+
+The app does **not** create its schema automatically — it assumes the MySQL database already exists. In MySQL:
+
+```sql
+CREATE DATABASE IF NOT EXISTS lexverdict CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+```
+
+The application relies on several database **views** that must be created ahead of time in the database (they are read by the app but are not included in this repository):
+
+- `view_reports` — normalized case rows consumed by the reports dashboard and PDF export
+- `view_case_lookup` — public case lookup data (docket + PIN)
+- `view_manage_users` — user management listing
+
+If your tables are created by external migration tooling (e.g. MySQL Workbench), re-create these views after importing your schema.
+
+### Run the app
 
 ```bash
 python run.py
 ```
 
-> Database credentials, secret keys, real case records, and production PINs should never be committed to the repository.
+Then open `http://127.0.0.1:5000` in your browser.
 
-## Academic Project
+## Configuration
 
-LexVerdict was developed as an academic software project focused on applying web development, database design, system analysis, security, and software quality principles to a real-world administrative workflow.
+All settings live in `config.py` and can be overridden with environment variables:
 
-The project was designed around the operational requirements of the **Office of the Provincial Prosecutor of Nueva Ecija**.
+| Variable       | Default                               | Purpose                             |
+|----------------|---------------------------------------|-------------------------------------|
+| `SECRET_KEY`   | random `os.urandom(32).hex()`          | Flask session signing               |
+| `DATABASE_URL` | `mysql+pymysql://root:@localhost/lexverdict` | SQLAlchemy database connection |
+| `FLASK_ENV`    | `production`                          | `development` enables debug mode    |
 
-## Status
+Configure the config class by setting `FLASK_ENV` to `development` or `production`.
 
-**Completed academic project / system prototype**
+## Usage
 
-The repository contains the implementation and supporting materials intended for educational, demonstration, and portfolio purposes.
+1. **Log in** with an account assigned to one of the roles (`superuser`, `Secretary`, `Prosecutor`, `PS`).
+2. As an admin/secretary, **create a subpoena** — record offenders, respondents, offenses, hearing dates, and the police station.
+3. **Verify** subpoenas and resolutions — either approve them for filing or deny them with a comment.
+4. Admin users can **generate the subpoena PDF** and open the **Case Report** page to filter data and export a **PDF report**.
+5. Case participants can verify a filed case through the public lookup using the Docket Number and PIN printed on the subpoena.
+
+## Report Generation
+
+- The **Case Report** page (`/reports`, admin only) lets you filter by:
+  - Date range, verdict (Filed / Dismissed), case type (crime), police station, sex, and age group.
+- Charts are rendered client-side with Chart.js and embedded into the exported PDF as images.
+- The **PDF export** (`/reports/pdf`) re-runs the same shared query helper used by the dashboard (`app/services.py`), so on-screen and PDF numbers always match.
+- WeasyPrint is required to generate both the case reports and subpoena PDFs — make sure the GTK3 runtime is installed.
+
+## Troubleshooting
+
+- **WeasyPrint errors** — ensure the GTK3 runtime is installed and reachable; on Windows this is a common cause of PDF generation failures.
+- **PDF generation fails on `/reports/pdf`** — confirm a valid CSRF token is submitted (the page includes it automatically) and that filters are well-formed.
+- **Database connection errors** — verify MySQL is running and `DATABASE_URL` matches your credentials.
 
 ## License
 
-No open-source license is currently specified.
-
-If this repository is intended for public distribution, add an appropriate license before allowing others to reuse or redistribute the code.
-
----
-
-**LexVerdict** — Subpoena and Case Resolution Monitoring System
+This project is provided for educational and internal office use. No license is specified.
