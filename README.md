@@ -139,4 +139,4 @@ Configure the config class by setting `FLASK_ENV` to `development` or `productio
 
 ## License
 
-This project is provided for educational and internal office use. No license is specified.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
