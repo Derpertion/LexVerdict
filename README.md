@@ -83,7 +83,7 @@ pip install -r requirements.txt
 
 The app's Data base can be imported to a MySQL, it includes sample data within. 
 
-The application relies on several database **views** that must be created ahead of time in the database (they are read by the app but are not included in this repository):
+The application relies on several database **views**:
 
 - `view_reports` — normalized case rows consumed by the reports dashboard and PDF export
 - `view_case_lookup` — public case lookup data (docket + PIN)
