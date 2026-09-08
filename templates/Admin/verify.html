@@ -302,6 +302,7 @@
             <form method="POST" id="denyForm" action="">
                 <input type="hidden" name="action" value="deny">
                 <input type="hidden" name="docket_number" id="modalDocketNumber">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label for="comment">Reason for Declinement:</label>
                 <textarea name="comment" required style="width:96.5%; min-height:90px;"></textarea>
                 <div style="margin-top:0.75rem; display:flex; gap:.5rem; justify-content:flex-end;">
@@ -320,6 +321,7 @@
             <form method="POST" id="denyResolutionForm" action="">
                 <input type="hidden" name="action" value="deny">
                 <input type="hidden" name="docket_number" id="resolutionModalDocketNumber">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label for="comment">Reason for Declinement:</label>
                 <textarea name="comment" required style="width:96.5%; min-height:90px;"></textarea>
                 <div style="margin-top:0.75rem; display:flex; gap:.5rem; justify-content:flex-end;">
@@ -417,16 +419,29 @@ function showToast(message, isError = false) {
 }
 
 /* ---------- Approve helpers ---------- */
+function getCsrfToken() {
+    const el = document.querySelector('input[name="csrf_token"]');
+    return el ? el.value : '';
+}
+
 function confirmApprove(docket) {
     if (!confirm("Are you sure you want to approve this subpoena?")) return;
     const url = "{{ url_for('admin.verify_subpoena', docket_number='DOCKET_PLACEHOLDER', action='approve') }}".replace('DOCKET_PLACEHOLDER', docket);
-    window.location.href = url;
+    const body = new URLSearchParams();
+    body.append('csrf_token', getCsrfToken());
+    fetch(url, { method: 'POST', body: body })
+        .then(response => { if (!response.ok) throw new Error('Failed'); window.location.reload(); })
+        .catch(() => showToast('Something went wrong while approving subpoena.', true));
 }
 
 function confirmApproveResolution(docket) {
     if (!confirm("Are you sure you want to approve this resolution?")) return;
     const url = `/admin/verify/resolution/${docket}/approve`;
-    window.location.href = url;
+    const body = new URLSearchParams();
+    body.append('csrf_token', getCsrfToken());
+    fetch(url, { method: 'POST', body: body })
+        .then(response => { if (!response.ok) throw new Error('Failed'); window.location.reload(); })
+        .catch(() => showToast('Something went wrong while approving resolution.', true));
 }
 
 /* ---------- Deny subpoena ---------- */

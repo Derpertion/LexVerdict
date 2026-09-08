@@ -1,16 +1,34 @@
+import os
+import logging
 from flask import Flask, session
 from flask_login import LoginManager
+from flask_wtf import CSRFProtect
 from datetime import timedelta
-from app.models import db, User  # use the one from models.py
+from app.models import db, User
+from config import get_config
+
+csrf = CSRFProtect()
+
 
 def create_app():
     app = Flask(__name__, template_folder='../templates', static_folder='../static')
-    app.secret_key = 'your_secret_key'
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/lexverdict'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    # Load config
+    config_class = get_config()
+    app.config.from_object(config_class)
+
+    # Ensure SECRET_KEY is set
+    if not app.config.get('SECRET_KEY') or app.config['SECRET_KEY'] in ('your_secret_key', 'lexverdict-secret-key'):
+        app.config['SECRET_KEY'] = os.urandom(32).hex()
+
+    # Setup logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s %(levelname)s %(name)s: %(message)s'
+    )
 
     db.init_app(app)
+    csrf.init_app(app)
 
     login_manager = LoginManager()
     login_manager.init_app(app)
@@ -34,5 +52,15 @@ def create_app():
     app.register_blueprint(secret_bp)
     app.register_blueprint(prosecutor_bp)
     app.register_blueprint(ps_bp)
+
+    # Error handlers
+    @app.errorhandler(404)
+    def not_found(e):
+        return "Page not found", 404
+
+    @app.errorhandler(500)
+    def internal_error(e):
+        db.session.rollback()
+        return "Internal server error", 500
 
     return app

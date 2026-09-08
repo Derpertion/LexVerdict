@@ -8,7 +8,7 @@
 </head>
 <body>
     <header class="nav-header">
-        <a href="{{ url_for('secretary.dashboard') }}" class="{% if request.endpoint == 'secertary.dashboard' %}active{% endif %}"><img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="nav-logo"></a>
+        <a href="{{ url_for('secretary.dashboard') }}" class="{% if request.endpoint == 'secretary.dashboard' %}active{% endif %}"><img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="nav-logo"></a>
         <h1 class="nav-title">LexVerdict | Secretary: {{ current_user.person.First_name }}</h1>
         <nav class="nav-links">
             <a href="{{ url_for('secretary.subpoena_list') }}" class="{% if request.endpoint == 'secretary.subpoena_list' %}active{% endif %}">List of Cases</a>
@@ -286,6 +286,7 @@
             <form method="POST" id="denyForm" action="">
                 <input type="hidden" name="action" value="deny">
                 <input type="hidden" name="docket_number" id="modalDocketNumber">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label for="comment">Reason for denial:</label>
                 <textarea name="comment" required style="width:96.5%; min-height:90px;"></textarea>
                 <div style="margin-top:0.75rem; display:flex; gap:.5rem; justify-content:flex-end;">

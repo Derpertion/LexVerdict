@@ -81,10 +81,12 @@
                 <td>{{ user.Username or '—' }}</td>
                 <td><em>Encrypted</em></td>
                 <td>
-                    <a href="{{ url_for('admin.restore_user', user_id=user.USER_ID) }}" 
-                       onclick="return confirm('Are you sure you want to restore this user?')">
-                        Restore
-                    </a>
+                    <form method="POST" action="{{ url_for('admin.restore_user', user_id=user.USER_ID) }}"
+                        style="display:inline;"
+                        onsubmit="return confirm('Are you sure you want to restore this user?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" style="background:none; border:none; color:blue; text-decoration:underline; cursor:pointer; padding:0;">Restore</button>
+                    </form>
                 </td>
             </tr>
             {% endfor %}

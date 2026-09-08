@@ -10,7 +10,7 @@
 <body>
 
 <header class="nav-header">
-    <a href="{{ url_for('secretary.dashboard') }}" class="{% if request.endpoint == 'secertary.dashboard' %}active{% endif %}"><img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="nav-logo"></a>
+    <a href="{{ url_for('secretary.dashboard') }}" class="{% if request.endpoint == 'secretary.dashboard' %}active{% endif %}"><img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="nav-logo"></a>
     <h1 class="nav-title">LexVerdict | Secretary: {{ current_user.person.First_name }}</h1>
     <nav class="nav-links">
         <a href="{{ url_for('secretary.subpoena_list') }}" class="{% if request.endpoint == 'secretary.subpoena_list' %}active{% endif %}">List of Cases</a>

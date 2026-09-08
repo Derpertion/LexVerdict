@@ -169,6 +169,7 @@
     <div class="section-title">
         <h2>CASE REPORT</h2>
         <button id="generatePDF" class="generate-btn" type="button">Generate Report PDF</button>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     </div>
     <br>
 
@@ -188,7 +189,7 @@
 
             <label>Case Type:
                 <select name="crime" id="crime-select" multiple>
-                    {% for c in crimes %}
+                    {% for c in all_crimes %}
                         <option value="{{ c }}" {% if c in filters.getlist('crime') %}selected{% endif %}>{{ c }}</option>
                     {% endfor %}
                 </select>
@@ -250,11 +251,11 @@
         <!-- Middle: Graphs -->
         {% if has_filters %}
         <div class="chart-section">
-            <div class="graph-card"><div class="chart-title">Crime Distribution</div><canvas id="crimeChart"></canvas></div>
-            <div class="graph-card {% if filters.get('station') %}hidden-graph{% endif %}"><div class="chart-title">Cases per Police Station</div><canvas id="stationChart"></canvas></div>
-            <div class="graph-card {% if filters.get('sex') %}hidden-graph{% endif %}"><div class="chart-title">Sex Distribution</div><canvas id="sexChart"></canvas></div>
-            <div class="graph-card {% if filters.get('age_group') %}hidden-graph{% endif %}"><div class="chart-title">Age Group of Victims</div><canvas id="ageChart"></canvas></div>
-            <div class="graph-card"><div class="chart-title">Verdict Distribution</div><canvas id="verdictChart"></canvas></div>
+            <div class="graph-card"><div class="chart-title">Crime Distribution</div><canvas id="crimeChart" data-chart-name="Crime Distribution"></canvas></div>
+            <div class="graph-card {% if filters.get('station') %}hidden-graph{% endif %}"><div class="chart-title">Cases per Police Station</div><canvas id="stationChart" data-chart-name="Cases per Police Station"></canvas></div>
+            <div class="graph-card {% if filters.get('sex') %}hidden-graph{% endif %}"><div class="chart-title">Sex Distribution</div><canvas id="sexChart" data-chart-name="Sex Distribution"></canvas></div>
+            <div class="graph-card {% if filters.get('age_group') %}hidden-graph{% endif %}"><div class="chart-title">Age Group of Victims</div><canvas id="ageChart" data-chart-name="Age Group of Victims"></canvas></div>
+            <div class="graph-card"><div class="chart-title">Verdict Distribution</div><canvas id="verdictChart" data-chart-name="Verdict Distribution"></canvas></div>
         </div>
 
         <!-- Right: Tables -->
@@ -370,16 +371,26 @@ safeChart("stationChart", {
 }});
 
 document.getElementById('generatePDF').addEventListener('click', function() {
-  // collect chart canvas images (in DOM order)
-  const canvases = Array.from(document.querySelectorAll('canvas'));
-  const images = canvases.map(c => {
-    try { return c.toDataURL('image/png'); }
-    catch(e) { console.warn('Canvas capture failed', e); return null; }
-  }).filter(Boolean);
+  // collect visible chart canvas images with their names (skip hidden ones)
+  const charts = [];
+  document.querySelectorAll('canvas').forEach(c => {
+    const card = c.closest('.graph-card');
+    if (card && card.classList.contains('hidden-graph')) return;
+    try {
+      charts.push({ name: c.dataset.chartName || c.id, image: c.toDataURL('image/png') });
+    } catch(e) { console.warn('Canvas capture failed', e); }
+  });
 
   // gather current URL filters (use search params)
   const params = new URLSearchParams(window.location.search);
   const form = new FormData();
+
+  // include CSRF token required by Flask-WTF
+  const csrfInput = document.querySelector('meta[name="csrf-token"]') ||
+                    document.querySelector('input[name="csrf_token"]');
+  if (csrfInput) {
+    form.append('csrf_token', csrfInput.content || csrfInput.value);
+  }
 
   // append filters (flat values and repeated 'crime' keys)
   // keep multiple crime values by reading selected options if present
@@ -411,7 +422,7 @@ document.getElementById('generatePDF').addEventListener('click', function() {
   });
 
   // append charts as JSON
-  form.append('charts', JSON.stringify(images));
+  form.append('charts', JSON.stringify(charts));
 
   // POST to server and open returned PDF
   fetch('/reports/pdf', {

@@ -26,7 +26,7 @@
     <nav class="nav-links">
         <a href="{{ url_for('admin.subpoena_list') }}" class="{% if request.endpoint == 'admin.subpoena_list' %}active{% endif %}">List of Cases</a>
         <a href="{{ url_for('admin.create_subpoena') }}" class="{% if request.endpoint == 'admin.create_subpoena' %}active{% endif %}">Add Cases</a>
-        <a href="{{ url_for('admin.verify_cases') }}" class="{% if request.endpoint == 'admin.verify' %}active{% endif %}">Verify Cases</a>
+        <a href="{{ url_for('admin.verify_cases') }}" class="{% if request.endpoint == 'admin.verify_cases' %}active{% endif %}">Verify Cases</a>
         <a href="{{ url_for('admin.reports') }}" class="{% if request.endpoint == 'admin.reports' %}active{% endif %}">Generate Report</a>
     </nav>
 </header>
